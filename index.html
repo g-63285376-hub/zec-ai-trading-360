@@ -2,76 +2,232 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ZEC AI Trading 360 Pro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111f">
+<title>ZEC AI Trading 360 V4</title>
+
 <style>
+*{box-sizing:border-box}
 body{
- margin:0;background:#08101f;color:#fff;
- font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+margin:0;
+background:#07111f;
+color:#fff;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 header{
- background:#111c33;padding:20px;
- border-bottom:1px solid #263858
+padding:18px 16px;
+background:#0d1930;
+border-bottom:1px solid #263858;
+position:sticky;
+top:0;
+z-index:10;
 }
-.logo{font-size:22px;font-weight:800;color:#69a7ff}
-.small{font-size:13px;color:#91a6c7;margin-top:5px}
-main{padding:14px;max-width:900px;margin:auto}
+.logo{
+font-size:21px;
+font-weight:900;
+color:#69a7ff;
+}
+.sub{
+font-size:12px;
+color:#8fa6c8;
+margin-top:4px;
+}
+main{
+max-width:900px;
+margin:auto;
+padding:12px;
+}
 .card{
- background:#121d33;border:1px solid #293b5d;
- border-radius:16px;padding:18px;margin-bottom:14px
+background:#111d33;
+border:1px solid #263858;
+border-radius:16px;
+padding:16px;
+margin-bottom:12px;
 }
-.row{display:flex;justify-content:space-between;gap:10px;align-items:center}
-.price{font-size:38px;font-weight:800;margin:8px 0}
+.row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:10px;
+}
+.price{
+font-size:38px;
+font-weight:900;
+margin:5px 0;
+}
+.small{
+font-size:12px;
+color:#8fa6c8;
+}
 .green{color:#35d39a}
 .red{color:#ff6b81}
 .yellow{color:#ffc857}
+.blue{color:#69a7ff}
+
 button{
- background:#2463eb;color:white;border:0;
- border-radius:9px;padding:10px 14px;font-weight:600
+border:0;
+border-radius:9px;
+padding:9px 12px;
+font-weight:700;
+background:#1d5fe9;
+color:#fff;
+margin:3px;
+}
+button.active{
+background:#35d39a;
+color:#06111e;
+}
+.tf{
+display:flex;
+flex-wrap:wrap;
+margin-top:12px;
 }
 .grid{
- display:grid;grid-template-columns:1fr 1fr;
- gap:10px;margin-top:12px
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:9px;
+margin-top:10px;
 }
 .box{
- background:#0a1427;border-radius:10px;
- padding:12px;color:#9fb1ce
+background:#091426;
+border-radius:11px;
+padding:11px;
+color:#8fa6c8;
+font-size:12px;
 }
-.box b{display:block;color:white;margin-top:5px}
-#signal{font-size:34px;font-weight:900}
+.box b{
+display:block;
+color:#fff;
+font-size:16px;
+margin-top:5px;
+}
+.signal{
+font-size:36px;
+font-weight:900;
+margin:5px 0;
+}
+.score{
+font-size:28px;
+font-weight:900;
+}
+.bar{
+height:9px;
+background:#08111f;
+border-radius:20px;
+overflow:hidden;
+margin-top:7px;
+}
+.fill{
+height:100%;
+width:50%;
+background:#35d39a;
+transition:.4s;
+}
+.sectionTitle{
+font-weight:800;
+font-size:16px;
+margin-bottom:8px;
+}
+.risk{
+padding:10px;
+border-radius:10px;
+background:#251d10;
+border:1px solid #59471c;
+margin-top:10px;
+}
+.footer{
+text-align:center;
+color:#60799d;
+font-size:11px;
+padding:15px;
+}
+hr{
+border:0;
+border-top:1px solid #263858;
+margin:12px 0;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-<div class="logo">◈ ZEC AI Trading 360 Pro</div>
-<div class="small">实时行情 · 技术分析 · 模拟交易</div>
+<div class="logo">◈ ZEC AI Trading 360 V4</div>
+<div class="sub">
+实时行情 · 多周期 · Fibonacci · AI 综合分析
+</div>
 </header>
 
 <main>
 
+<!-- MARKET -->
 <div class="card">
+
 <div class="row">
 <div>
 <div class="small">ZEC / USDT</div>
 <div id="price" class="price">连接中...</div>
-<div id="time" class="small">正在获取实时行情</div>
+<div id="change" class="small">等待行情</div>
 </div>
 
-<div>
+<div style="text-align:right">
 <div id="status" class="yellow">● CONNECTING</div>
+<div id="timer" class="small">5秒刷新</div>
 </div>
 </div>
 
-<button onclick="load()">↻ 刷新行情</button>
+<div class="tf">
+<button onclick="setTF('5m',this)">5m</button>
+<button class="active" onclick="setTF('15m',this)">15m</button>
+<button onclick="setTF('30m',this)">30m</button>
+<button onclick="setTF('1h',this)">1H</button>
+<button onclick="setTF('4h',this)">4H</button>
+<button onclick="setTF('1d',this)">1D</button>
 </div>
 
+<div id="updateTime" class="small" style="margin-top:8px">
+等待更新...
+</div>
+
+</div>
+
+<!-- SIGNAL -->
 <div class="card">
 
-<div class="small">AI TECHNICAL SIGNAL</div>
-<div id="signal" class="yellow">WAIT</div>
-<div id="reason" class="small">等待市场数据...</div>
+<div class="small">AI MARKET SIGNAL</div>
+
+<div id="signal" class="signal yellow">
+WAIT
+</div>
+
+<div class="row">
+<div>
+<div class="small">AI 综合评分</div>
+<div id="score" class="score">50 / 100</div>
+</div>
+
+<div style="text-align:right">
+<div class="small">Confidence</div>
+<b id="confidence">MEDIUM</b>
+</div>
+</div>
+
+<div class="bar">
+<div id="scoreBar" class="fill"></div>
+</div>
+
+<p id="reason" class="small">
+等待技术数据...
+</p>
+
+</div>
+
+<!-- TECHNICAL -->
+<div class="card">
+
+<div class="sectionTitle">
+技术分析
+</div>
 
 <div class="grid">
 
@@ -91,26 +247,143 @@ RSI 14
 </div>
 
 <div class="box">
+MACD
+<b id="macd">—</b>
+</div>
+
+<div class="box">
+ATR
+<b id="atr">—</b>
+</div>
+
+<div class="box">
 趋势
 <b id="trend">—</b>
 </div>
 
 </div>
+
 </div>
 
+<!-- FIB -->
 <div class="card">
 
-<b>自动交易计划</b>
+<div class="sectionTitle">
+Fibonacci 自动分析
+</div>
 
 <div class="grid">
 
 <div class="box">
-参考入场
+Swing High
+<b id="high">—</b>
+</div>
+
+<div class="box">
+Swing Low
+<b id="low">—</b>
+</div>
+
+<div class="box">
+Fib 38.2%
+<b id="fib382">—</b>
+</div>
+
+<div class="box">
+Fib 50%
+<b id="fib50">—</b>
+</div>
+
+<div class="box">
+Fib 61.8%
+<b id="fib618">—</b>
+</div>
+
+<div class="box">
+最近关键位
+<b id="nearestFib">—</b>
+</div>
+
+</div>
+
+</div>
+
+<!-- MULTI TIMEFRAME -->
+<div class="card">
+
+<div class="sectionTitle">
+多周期共振
+</div>
+
+<div class="grid">
+
+<div class="box">
+15分钟
+<b id="tf15">分析中</b>
+</div>
+
+<div class="box">
+1小时
+<b id="tf1h">分析中</b>
+</div>
+
+<div class="box">
+4小时
+<b id="tf4h">分析中</b>
+</div>
+
+<div class="box">
+共振
+<b id="alignment">—</b>
+</div>
+
+</div>
+
+</div>
+
+<!-- BTC -->
+<div class="card">
+
+<div class="sectionTitle">
+BTC 市场环境
+</div>
+
+<div class="grid">
+
+<div class="box">
+BTC Price
+<b id="btcPrice">—</b>
+</div>
+
+<div class="box">
+BTC 24H
+<b id="btcChange">—</b>
+</div>
+
+</div>
+
+<div id="btcRisk" class="small" style="margin-top:10px">
+等待 BTC 数据...
+</div>
+
+</div>
+
+<!-- TRADE PLAN -->
+<div class="card">
+
+<div class="sectionTitle">
+AI 自动交易计划
+</div>
+
+<div class="grid">
+
+<div class="box">
+参考 Entry
 <b id="entry">—</b>
 </div>
 
 <div class="box">
-止损 SL
+Stop Loss
 <b id="sl">—</b>
 </div>
 
@@ -124,162 +397,547 @@ TP2
 <b id="tp2">—</b>
 </div>
 
+<div class="box">
+TP3
+<b id="tp3">—</b>
 </div>
 
-<p class="small">
-仅用于市场分析及模拟交易，不执行真实资金交易。
-</p>
+<div class="box">
+风险等级
+<b id="riskLevel">—</b>
+</div>
 
+</div>
+
+</div>
+
+<!-- GLOBAL -->
+<div class="card">
+
+<div class="sectionTitle">
+🌍 Global Risk Engine
+</div>
+
+<div class="grid">
+
+<div class="box">
+技术风险
+<b id="techRisk">—</b>
+</div>
+
+<div class="box">
+市场风险
+<b id="marketRisk">—</b>
+</div>
+
+<div class="box">
+宏观风险
+<b class="yellow">MONITOR</b>
+</div>
+
+<div class="box">
+地缘政治
+<b class="yellow">MONITOR</b>
+</div>
+
+</div>
+
+<div class="risk">
+<b>⚠️ EVENT RISK</b>
+<div class="small" style="margin-top:5px">
+V4 当前版本已经预留宏观经济、财经新闻及地缘政治风险接口。
+下一阶段接入实时新闻与经济事件数据。
+</div>
+</div>
+
+</div>
+
+<div class="footer">
+仅用于市场研究及模拟分析，不构成投资建议。
+<br>
+ZEC AI Trading 360 V4
 </div>
 
 </main>
 
 <script>
 
-const API=
-"https://data-api.binance.vision/api/v3/klines?symbol=ZECUSDT&interval=15m&limit=100";
+const HOSTS=[
+"https://data-api.binance.vision",
+"https://api.binance.com",
+"https://api1.binance.com",
+"https://api2.binance.com"
+];
+
+let TF="15m";
+let lastPrice=0;
+
+const $=id=>document.getElementById(id);
+
+async function api(path){
+
+for(const host of HOSTS){
+
+try{
+
+const controller=new AbortController();
+
+const timeout=setTimeout(
+()=>controller.abort(),5000
+);
+
+const r=await fetch(
+host+path,
+{
+cache:"no-store",
+signal:controller.signal
+}
+);
+
+clearTimeout(timeout);
+
+if(r.ok)
+return await r.json();
+
+}catch(e){}
+
+}
+
+throw new Error("API unavailable");
+
+}
 
 function EMA(data,n){
- let k=2/(n+1);
- let e=data[0];
 
- for(let i=1;i<data.length;i++)
-  e=data[i]*k+e*(1-k);
+if(!data.length)return 0;
 
- return e;
+let k=2/(n+1);
+let e=data[0];
+
+for(let i=1;i<data.length;i++)
+e=data[i]*k+e*(1-k);
+
+return e;
+
 }
 
 function RSI(data,n=14){
 
- let gain=0,loss=0;
+if(data.length<n+1)return 50;
 
- for(let i=data.length-n;i<data.length;i++){
+let gain=0;
+let loss=0;
 
-  let d=data[i]-data[i-1];
+for(let i=data.length-n;i<data.length;i++){
 
-  if(d>0) gain+=d;
-  else loss-=d;
+let d=data[i]-data[i-1];
 
- }
-
- if(loss===0) return 100;
-
- let rs=(gain/n)/(loss/n);
-
- return 100-(100/(1+rs));
-}
-
-async function load(){
-
- let status=document.getElementById("status");
-
- status.innerText="● CONNECTING";
- status.className="yellow";
-
- try{
-
-  let res=await fetch(API,{cache:"no-store"});
-
-  if(!res.ok) throw new Error();
-
-  let raw=await res.json();
-
-  let close=raw.map(x=>Number(x[4]));
-
-  let price=close[close.length-1];
-
-  let e20=EMA(close.slice(-60),20);
-  let e50=EMA(close.slice(-80),50);
-  let rsi=RSI(close);
-
-  document.getElementById("price").innerText=
-  "$"+price.toFixed(2);
-
-  document.getElementById("ema20").innerText=
-  e20.toFixed(2);
-
-  document.getElementById("ema50").innerText=
-  e50.toFixed(2);
-
-  document.getElementById("rsi").innerText=
-  rsi.toFixed(1);
-
-  let signal="WAIT";
-  let reason="趋势暂未形成一致信号。";
-  let trend="NEUTRAL";
-
-  if(e20>e50){
-
-   trend="BULLISH";
-
-   if(rsi>50 && rsi<70){
-    signal="BUY";
-    reason="EMA20 高于 EMA50，同时 RSI 保持多头动能。";
-   }
-
-  }
-
-  if(e20<e50){
-
-   trend="BEARISH";
-
-   if(rsi<50 && rsi>30){
-    signal="SELL";
-    reason="EMA20 低于 EMA50，同时 RSI 保持空头动能。";
-   }
-
-  }
-
-  let s=document.getElementById("signal");
-
-  s.innerText=signal;
-
-  s.className=
-  signal==="BUY"?"green":
-  signal==="SELL"?"red":"yellow";
-
-  document.getElementById("trend").innerText=trend;
-  document.getElementById("reason").innerText=reason;
-
-  let risk=price*0.01;
-
-  let dir=signal==="SELL"?-1:1;
-
-  document.getElementById("entry").innerText=
-  price.toFixed(2);
-
-  document.getElementById("sl").innerText=
-  (price-dir*risk).toFixed(2);
-
-  document.getElementById("tp1").innerText=
-  (price+dir*risk).toFixed(2);
-
-  document.getElementById("tp2").innerText=
-  (price+dir*risk*2).toFixed(2);
-
-  document.getElementById("time").innerText=
-  "更新时间："+new Date().toLocaleString(
-   "zh-CN",{timeZone:"Asia/Kuala_Lumpur"}
-  )+" MYT";
-
-  status.innerText="● LIVE";
-  status.className="green";
-
- }catch(e){
-
-  status.innerText="● OFFLINE";
-  status.className="red";
-
-  document.getElementById("price").innerText=
-  "行情连接失败";
-
- }
+if(d>0)gain+=d;
+else loss-=d;
 
 }
 
-load();
+if(loss===0)return 100;
 
-setInterval(load,30000);
+let rs=gain/loss;
+
+return 100-(100/(1+rs));
+
+}
+
+function ATR(bars,n=14){
+
+if(bars.length<n+1)return 0;
+
+let total=0;
+
+for(let i=bars.length-n;i<bars.length;i++){
+
+let high=+bars[i][2];
+let low=+bars[i][3];
+let prev=+bars[i-1][4];
+
+let tr=Math.max(
+high-low,
+Math.abs(high-prev),
+Math.abs(low-prev)
+);
+
+total+=tr;
+
+}
+
+return total/n;
+
+}
+
+function MACD(data){
+
+let m12=EMA(data.slice(-40),12);
+let m26=EMA(data.slice(-60),26);
+
+return m12-m26;
+
+}
+
+function classify(data){
+
+let e20=EMA(data.slice(-70),20);
+let e50=EMA(data.slice(-100),50);
+let r=RSI(data);
+
+if(e20>e50 && r>50)
+return "BULLISH";
+
+if(e20<e50 && r<50)
+return "BEARISH";
+
+return "NEUTRAL";
+
+}
+
+function setTF(tf,btn){
+
+TF=tf;
+
+document.querySelectorAll(".tf button")
+.forEach(x=>x.classList.remove("active"));
+
+btn.classList.add("active");
+
+loadMain();
+
+}
+
+async function loadMain(){
+
+try{
+
+$("status").innerText="● LIVE";
+$("status").className="green";
+
+const bars=await api(
+"/api/v3/klines?symbol=ZECUSDT&interval="
++TF+
+"&limit=150"
+);
+
+const close=bars.map(x=>+x[4]);
+
+const price=close[close.length-1];
+
+lastPrice=price;
+
+const e20=EMA(close.slice(-80),20);
+const e50=EMA(close.slice(-120),50);
+const rsi=RSI(close);
+const atr=ATR(bars);
+const macd=MACD(close);
+
+$("price").innerText="$"+price.toFixed(2);
+
+$("ema20").innerText=e20.toFixed(2);
+$("ema50").innerText=e50.toFixed(2);
+$("rsi").innerText=rsi.toFixed(1);
+$("macd").innerText=macd.toFixed(3);
+$("atr").innerText=atr.toFixed(2);
+
+let trend="NEUTRAL";
+
+if(e20>e50)trend="BULLISH";
+if(e20<e50)trend="BEARISH";
+
+$("trend").innerText=trend;
+
+const recent=bars.slice(-60);
+
+const highs=recent.map(x=>+x[2]);
+const lows=recent.map(x=>+x[3]);
+
+const high=Math.max(...highs);
+const low=Math.min(...lows);
+
+const range=high-low;
+
+const fib382=high-range*.382;
+const fib50=high-range*.5;
+const fib618=high-range*.618;
+
+$("high").innerText=high.toFixed(2);
+$("low").innerText=low.toFixed(2);
+$("fib382").innerText=fib382.toFixed(2);
+$("fib50").innerText=fib50.toFixed(2);
+$("fib618").innerText=fib618.toFixed(2);
+
+const fibs=[
+["38.2%",fib382],
+["50%",fib50],
+["61.8%",fib618]
+];
+
+let nearest=fibs.reduce(
+(a,b)=>
+Math.abs(b[1]-price)<
+Math.abs(a[1]-price)?b:a
+);
+
+$("nearestFib").innerText=
+nearest[0]+" @ "+nearest[1].toFixed(2);
+
+let score=50;
+let reasons=[];
+
+if(e20>e50){
+score+=15;
+reasons.push("EMA 多头");
+}else{
+score-=15;
+reasons.push("EMA 空头");
+}
+
+if(rsi>52 && rsi<70){
+score+=10;
+reasons.push("RSI 多头动能");
+}
+
+if(rsi<48 && rsi>30){
+score-=10;
+reasons.push("RSI 空头动能");
+}
+
+if(rsi>=70){
+score-=5;
+reasons.push("RSI 超买");
+}
+
+if(rsi<=30){
+score+=5;
+reasons.push("RSI 超卖");
+}
+
+if(macd>0){
+score+=10;
+reasons.push("MACD 正值");
+}else{
+score-=10;
+reasons.push("MACD 负值");
+}
+
+if(price>fib618){
+score+=5;
+reasons.push("价格位于 Fib 61.8% 上方");
+}else{
+score-=5;
+reasons.push("价格位于 Fib 61.8% 下方");
+}
+
+score=Math.max(0,Math.min(100,score));
+
+let signal="WAIT";
+
+if(score>=68)signal="BUY";
+if(score<=32)signal="SELL";
+
+$("score").innerText=score+" / 100";
+$("scoreBar").style.width=score+"%";
+
+let s=$("signal");
+
+s.innerText=signal;
+
+s.className=
+"signal "+
+(signal==="BUY"?"green":
+signal==="SELL"?"red":"yellow");
+
+$("confidence").innerText=
+score>=80||score<=20
+?"HIGH":
+score>=65||score<=35
+?"MEDIUM":"LOW";
+
+$("reason").innerText=
+reasons.join(" · ");
+
+let direction=
+signal==="SELL"?-1:
+signal==="BUY"?1:0;
+
+$("entry").innerText=price.toFixed(2);
+
+if(direction!==0){
+
+let risk=Math.max(
+atr*1.5,
+price*.006
+);
+
+$("sl").innerText=
+(price-direction*risk).toFixed(2);
+
+$("tp1").innerText=
+(price+direction*risk).toFixed(2);
+
+$("tp2").innerText=
+(price+direction*risk*2).toFixed(2);
+
+$("tp3").innerText=
+(price+direction*risk*3).toFixed(2);
+
+}else{
+
+$("sl").innerText="WAIT";
+$("tp1").innerText="WAIT";
+$("tp2").innerText="WAIT";
+$("tp3").innerText="WAIT";
+
+}
+
+let atrPct=(atr/price)*100;
+
+$("riskLevel").innerText=
+atrPct>3?"HIGH":
+atrPct>1.5?"MEDIUM":"LOW";
+
+$("techRisk").innerText=
+rsi>70||rsi<30
+?"HIGH":"NORMAL";
+
+$("marketRisk").innerText=
+atrPct>3
+?"HIGH":
+atrPct>1.5
+?"MEDIUM":"LOW";
+
+$("updateTime").innerText=
+"更新时间："+
+new Date().toLocaleString(
+"zh-CN",
+{
+timeZone:"Asia/Kuala_Lumpur",
+hour12:false
+}
+)+" MYT";
+
+$("change").innerText=
+"周期："+TF+
+" · 自动刷新：5秒";
+
+}catch(e){
+
+$("status").innerText="● OFFLINE";
+$("status").className="red";
+
+}
+
+}
+
+async function loadMulti(){
+
+try{
+
+const periods=[
+["15m","tf15"],
+["1h","tf1h"],
+["4h","tf4h"]
+];
+
+let results=[];
+
+for(const [tf,id] of periods){
+
+const bars=await api(
+"/api/v3/klines?symbol=ZECUSDT&interval="
++tf+
+"&limit=120"
+);
+
+const close=bars.map(x=>+x[4]);
+
+const state=classify(close);
+
+$(id).innerText=state;
+
+$(id).className=
+state==="BULLISH"
+?"green":
+state==="BEARISH"
+?"red":"yellow";
+
+results.push(state);
+
+}
+
+let bull=
+results.filter(x=>x==="BULLISH").length;
+
+let bear=
+results.filter(x=>x==="BEARISH").length;
+
+$("alignment").innerText=
+bull===3
+?"STRONG BULL":
+bear===3
+?"STRONG BEAR":
+bull>=2
+?"BULLISH":
+bear>=2
+?"BEARISH":"MIXED";
+
+}catch(e){}
+
+}
+
+async function loadBTC(){
+
+try{
+
+const data=await api(
+"/api/v3/ticker/24hr?symbol=BTCUSDT"
+);
+
+const p=+data.lastPrice;
+const c=+data.priceChangePercent;
+
+$("btcPrice").innerText=
+"$"+p.toLocaleString(
+undefined,
+{maximumFractionDigits:0}
+);
+
+$("btcChange").innerText=
+(c>=0?"+":"")+c.toFixed(2)+"%";
+
+$("btcChange").className=
+c>=0?"green":"red";
+
+$("btcRisk").innerText=
+c>2
+?"BTC 风险偏好较强，对加密市场较有利。":
+c<-2
+?"BTC 明显走弱，ZEC 多头信号需要谨慎。":
+"BTC 市场环境暂时中性。";
+
+}catch(e){}
+
+}
+
+async function refresh(){
+
+await loadMain();
+
+}
+
+loadMain();
+loadMulti();
+loadBTC();
+
+setInterval(refresh,5000);
+
+setInterval(()=>{
+loadMulti();
+loadBTC();
+},60000);
 
 </script>
 
