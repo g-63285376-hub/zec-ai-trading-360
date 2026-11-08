@@ -4,941 +4,638 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07111f">
-<title>ZEC AI Trading 360 V4</title>
+<title>ZEC AI Trading 360 V4.1</title>
 
 <style>
 *{box-sizing:border-box}
 body{
-margin:0;
-background:#07111f;
-color:#fff;
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ margin:0;background:#07111f;color:#fff;
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
 }
 header{
-padding:18px 16px;
-background:#0d1930;
-border-bottom:1px solid #263858;
-position:sticky;
-top:0;
-z-index:10;
+ padding:16px;background:#0d1930;border-bottom:1px solid #263858;
+ position:sticky;top:0;z-index:10
 }
-.logo{
-font-size:21px;
-font-weight:900;
-color:#69a7ff;
-}
-.sub{
-font-size:12px;
-color:#8fa6c8;
-margin-top:4px;
-}
-main{
-max-width:900px;
-margin:auto;
-padding:12px;
-}
+.logo{font-size:21px;font-weight:900;color:#69a7ff}
+.sub,.small{font-size:12px;color:#8fa6c8}
+main{max-width:900px;margin:auto;padding:12px}
 .card{
-background:#111d33;
-border:1px solid #263858;
-border-radius:16px;
-padding:16px;
-margin-bottom:12px;
+ background:#111d33;border:1px solid #263858;border-radius:16px;
+ padding:16px;margin-bottom:12px
 }
-.row{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:10px;
-}
-.price{
-font-size:38px;
-font-weight:900;
-margin:5px 0;
-}
-.small{
-font-size:12px;
-color:#8fa6c8;
-}
-.green{color:#35d39a}
-.red{color:#ff6b81}
-.yellow{color:#ffc857}
-.blue{color:#69a7ff}
-
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.box{background:#091426;border-radius:11px;padding:11px;color:#8fa6c8;font-size:12px}
+.box b{display:block;color:#fff;font-size:16px;margin-top:5px}
+.price{font-size:38px;font-weight:900;margin:5px 0}
+.signal{font-size:29px;font-weight:900;margin:6px 0}
+.score{font-size:25px;font-weight:900}
+.title{font-size:16px;font-weight:850;margin-bottom:8px}
+.green{color:#35d39a!important}
+.red{color:#ff6b81!important}
+.yellow{color:#ffc857!important}
+.blue{color:#69a7ff!important}
 button{
-border:0;
-border-radius:9px;
-padding:9px 12px;
-font-weight:700;
-background:#1d5fe9;
-color:#fff;
-margin:3px;
+ border:0;border-radius:9px;padding:9px 12px;font-weight:700;
+ background:#1d5fe9;color:#fff;margin:3px
 }
-button.active{
-background:#35d39a;
-color:#06111e;
+button.active{background:#35d39a;color:#06111e}
+.tf{display:flex;flex-wrap:wrap;margin-top:10px}
+.bar{height:9px;background:#08111f;border-radius:20px;overflow:hidden;margin-top:7px}
+.fill{height:100%;width:50%;background:#35d39a;transition:.4s}
+.alert{
+ padding:11px;border-radius:11px;background:#251d10;
+ border:1px solid #59471c;margin-top:10px
 }
-.tf{
-display:flex;
-flex-wrap:wrap;
-margin-top:12px;
+.why{
+ background:#091426;border-left:3px solid #69a7ff;
+ padding:11px;border-radius:8px;margin-top:10px;
+ font-size:13px;line-height:1.65
 }
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:9px;
-margin-top:10px;
+.strategy{
+ display:flex;justify-content:space-between;gap:8px;
+ padding:10px 0;border-bottom:1px solid #263858;font-size:13px
 }
-.box{
-background:#091426;
-border-radius:11px;
-padding:11px;
-color:#8fa6c8;
-font-size:12px;
+.badge{
+ padding:4px 8px;border-radius:7px;background:#162744;
+ font-size:11px;font-weight:800
 }
-.box b{
-display:block;
-color:#fff;
-font-size:16px;
-margin-top:5px;
-}
-.signal{
-font-size:36px;
-font-weight:900;
-margin:5px 0;
-}
-.score{
-font-size:28px;
-font-weight:900;
-}
-.bar{
-height:9px;
-background:#08111f;
-border-radius:20px;
-overflow:hidden;
-margin-top:7px;
-}
-.fill{
-height:100%;
-width:50%;
-background:#35d39a;
-transition:.4s;
-}
-.sectionTitle{
-font-weight:800;
-font-size:16px;
-margin-bottom:8px;
-}
-.risk{
-padding:10px;
-border-radius:10px;
-background:#251d10;
-border:1px solid #59471c;
-margin-top:10px;
-}
-.footer{
-text-align:center;
-color:#60799d;
-font-size:11px;
-padding:15px;
-}
-hr{
-border:0;
-border-top:1px solid #263858;
-margin:12px 0;
-}
+.footer{text-align:center;color:#60799d;font-size:11px;padding:15px}
 </style>
 </head>
 
 <body>
 
 <header>
-<div class="logo">◈ ZEC AI Trading 360 V4</div>
-<div class="sub">
-实时行情 · 多周期 · Fibonacci · AI 综合分析
-</div>
+ <div class="logo">◈ ZEC AI Trading 360 V4.1</div>
+ <div class="sub">Professional Strategy Engine · 实时市场决策系统</div>
 </header>
 
 <main>
 
-<!-- MARKET -->
 <div class="card">
+ <div class="row">
+  <div>
+   <div class="small">ZEC / USDT</div>
+   <div id="price" class="price">连接中...</div>
+   <div id="change" class="small">等待行情</div>
+  </div>
+  <div style="text-align:right">
+   <div id="status" class="yellow">● CONNECTING</div>
+   <div class="small">5秒刷新</div>
+  </div>
+ </div>
 
-<div class="row">
-<div>
-<div class="small">ZEC / USDT</div>
-<div id="price" class="price">连接中...</div>
-<div id="change" class="small">等待行情</div>
+ <div class="tf">
+  <button onclick="setTF('5m',this)">5m</button>
+  <button class="active" onclick="setTF('15m',this)">15m</button>
+  <button onclick="setTF('30m',this)">30m</button>
+  <button onclick="setTF('1h',this)">1H</button>
+  <button onclick="setTF('4h',this)">4H</button>
+  <button onclick="setTF('1d',this)">1D</button>
+ </div>
+ <div id="updateTime" class="small" style="margin-top:8px">等待更新...</div>
 </div>
 
-<div style="text-align:right">
-<div id="status" class="yellow">● CONNECTING</div>
-<div id="timer" class="small">5秒刷新</div>
-</div>
-</div>
-
-<div class="tf">
-<button onclick="setTF('5m',this)">5m</button>
-<button class="active" onclick="setTF('15m',this)">15m</button>
-<button onclick="setTF('30m',this)">30m</button>
-<button onclick="setTF('1h',this)">1H</button>
-<button onclick="setTF('4h',this)">4H</button>
-<button onclick="setTF('1d',this)">1D</button>
-</div>
-
-<div id="updateTime" class="small" style="margin-top:8px">
-等待更新...
-</div>
-
-</div>
-
-<!-- SIGNAL -->
 <div class="card">
+ <div class="small">V4.1 MARKET DECISION</div>
+ <div id="mainTrend" class="signal yellow">ANALYZING</div>
 
-<div class="small">AI MARKET SIGNAL</div>
+ <div class="grid">
+  <div class="box">ACTION<b id="action">WAIT</b></div>
+  <div class="box">CHASE RISK<b id="chaseRisk">—</b></div>
+  <div class="box">SETUP QUALITY<b id="setupScore">50 / 100</b></div>
+  <div class="box">ENTRY QUALITY<b id="entryScore">50 / 100</b></div>
+ </div>
 
-<div id="signal" class="signal yellow">
-WAIT
+ <div class="small" style="margin-top:12px">Setup Quality</div>
+ <div class="bar"><div id="setupBar" class="fill"></div></div>
+
+ <div class="why">
+  <b>WHY?</b>
+  <div id="why">正在分析市场结构...</div>
+ </div>
 </div>
 
-<div class="row">
-<div>
-<div class="small">AI 综合评分</div>
-<div id="score" class="score">50 / 100</div>
-</div>
-
-<div style="text-align:right">
-<div class="small">Confidence</div>
-<b id="confidence">MEDIUM</b>
-</div>
-</div>
-
-<div class="bar">
-<div id="scoreBar" class="fill"></div>
-</div>
-
-<p id="reason" class="small">
-等待技术数据...
-</p>
-
-</div>
-
-<!-- TECHNICAL -->
 <div class="card">
+ <div class="title">Professional Strategy Engine</div>
 
-<div class="sectionTitle">
-技术分析
+ <div class="strategy">
+  <span>趋势跟随 Trend Following</span>
+  <span id="strTrend" class="badge">WAIT</span>
+ </div>
+ <div class="strategy">
+  <span>回调入场 Pullback</span>
+  <span id="strPullback" class="badge">WAIT</span>
+ </div>
+ <div class="strategy">
+  <span>突破策略 Breakout</span>
+  <span id="strBreakout" class="badge">WAIT</span>
+ </div>
+ <div class="strategy">
+  <span>均值回归 Mean Reversion</span>
+  <span id="strMean" class="badge">WAIT</span>
+ </div>
+
+ <div class="small" style="margin-top:10px">
+ 多策略共同确认，而不是依赖单一指标。策略表现必须由实际模拟记录验证。
+ </div>
 </div>
 
-<div class="grid">
-
-<div class="box">
-EMA 20
-<b id="ema20">—</b>
-</div>
-
-<div class="box">
-EMA 50
-<b id="ema50">—</b>
-</div>
-
-<div class="box">
-RSI 14
-<b id="rsi">—</b>
-</div>
-
-<div class="box">
-MACD
-<b id="macd">—</b>
-</div>
-
-<div class="box">
-ATR
-<b id="atr">—</b>
-</div>
-
-<div class="box">
-趋势
-<b id="trend">—</b>
-</div>
-
-</div>
-
-</div>
-
-<!-- FIB -->
 <div class="card">
-
-<div class="sectionTitle">
-Fibonacci 自动分析
+ <div class="title">技术分析</div>
+ <div class="grid">
+  <div class="box">EMA 20<b id="ema20">—</b></div>
+  <div class="box">EMA 50<b id="ema50">—</b></div>
+  <div class="box">EMA 200<b id="ema200">—</b></div>
+  <div class="box">RSI 14<b id="rsi">—</b></div>
+  <div class="box">MACD<b id="macd">—</b></div>
+  <div class="box">ATR<b id="atr">—</b></div>
+ </div>
 </div>
 
-<div class="grid">
-
-<div class="box">
-Swing High
-<b id="high">—</b>
-</div>
-
-<div class="box">
-Swing Low
-<b id="low">—</b>
-</div>
-
-<div class="box">
-Fib 38.2%
-<b id="fib382">—</b>
-</div>
-
-<div class="box">
-Fib 50%
-<b id="fib50">—</b>
-</div>
-
-<div class="box">
-Fib 61.8%
-<b id="fib618">—</b>
-</div>
-
-<div class="box">
-最近关键位
-<b id="nearestFib">—</b>
-</div>
-
-</div>
-
-</div>
-
-<!-- MULTI TIMEFRAME -->
 <div class="card">
-
-<div class="sectionTitle">
-多周期共振
+ <div class="title">Fibonacci + Market Structure</div>
+ <div class="grid">
+  <div class="box">Swing High<b id="high">—</b></div>
+  <div class="box">Swing Low<b id="low">—</b></div>
+  <div class="box">Fib 38.2%<b id="fib382">—</b></div>
+  <div class="box">Fib 50%<b id="fib50">—</b></div>
+  <div class="box">Fib 61.8%<b id="fib618">—</b></div>
+  <div class="box">最近关键位<b id="nearestFib">—</b></div>
+ </div>
 </div>
 
-<div class="grid">
-
-<div class="box">
-15分钟
-<b id="tf15">分析中</b>
-</div>
-
-<div class="box">
-1小时
-<b id="tf1h">分析中</b>
-</div>
-
-<div class="box">
-4小时
-<b id="tf4h">分析中</b>
-</div>
-
-<div class="box">
-共振
-<b id="alignment">—</b>
-</div>
-
-</div>
-
-</div>
-
-<!-- BTC -->
 <div class="card">
-
-<div class="sectionTitle">
-BTC 市场环境
+ <div class="title">Multi-Timeframe Confirmation</div>
+ <div class="grid">
+  <div class="box">15分钟<b id="tf15">分析中</b></div>
+  <div class="box">1小时<b id="tf1h">分析中</b></div>
+  <div class="box">4小时<b id="tf4h">分析中</b></div>
+  <div class="box">共振<b id="alignment">—</b></div>
+ </div>
 </div>
 
-<div class="grid">
-
-<div class="box">
-BTC Price
-<b id="btcPrice">—</b>
-</div>
-
-<div class="box">
-BTC 24H
-<b id="btcChange">—</b>
-</div>
-
-</div>
-
-<div id="btcRisk" class="small" style="margin-top:10px">
-等待 BTC 数据...
-</div>
-
-</div>
-
-<!-- TRADE PLAN -->
 <div class="card">
-
-<div class="sectionTitle">
-AI 自动交易计划
+ <div class="title">Crypto Market Environment</div>
+ <div class="grid">
+  <div class="box">BTC Price<b id="btcPrice">—</b></div>
+  <div class="box">BTC 24H<b id="btcChange">—</b></div>
+  <div class="box">ETH Price<b id="ethPrice">—</b></div>
+  <div class="box">ETH 24H<b id="ethChange">—</b></div>
+ </div>
+ <div id="cryptoEnvironment" class="why">等待市场环境数据...</div>
 </div>
 
-<div class="grid">
-
-<div class="box">
-参考 Entry
-<b id="entry">—</b>
-</div>
-
-<div class="box">
-Stop Loss
-<b id="sl">—</b>
-</div>
-
-<div class="box">
-TP1
-<b id="tp1">—</b>
-</div>
-
-<div class="box">
-TP2
-<b id="tp2">—</b>
-</div>
-
-<div class="box">
-TP3
-<b id="tp3">—</b>
-</div>
-
-<div class="box">
-风险等级
-<b id="riskLevel">—</b>
-</div>
-
-</div>
-
-</div>
-
-<!-- GLOBAL -->
 <div class="card">
+ <div class="title">Risk-Managed Trade Plan</div>
 
-<div class="sectionTitle">
-🌍 Global Risk Engine
+ <div id="planStatus" class="alert">
+  等待有效 Setup。没有合适入场条件时，不生成强制交易。
+ </div>
+
+ <div class="grid">
+  <div class="box">参考 Entry<b id="entry">WAIT</b></div>
+  <div class="box">Stop Loss<b id="sl">WAIT</b></div>
+  <div class="box">TP1 · 1R<b id="tp1">WAIT</b></div>
+  <div class="box">TP2 · 2R<b id="tp2">WAIT</b></div>
+  <div class="box">TP3 · 3R<b id="tp3">WAIT</b></div>
+  <div class="box">参考 Risk<b>1.0% MAX</b></div>
+ </div>
+
+ <div class="small" style="margin-top:10px">
+ 1% 为本系统的保守风险参考，不代表适合所有账户。
+ </div>
 </div>
 
-<div class="grid">
-
-<div class="box">
-技术风险
-<b id="techRisk">—</b>
+<div class="card">
+ <div class="title">Strategy Performance Tracker</div>
+ <div class="grid">
+  <div class="box">模拟交易数<b id="tradeCount">0</b></div>
+  <div class="box">Win Rate<b id="winRate">等待样本</b></div>
+  <div class="box">Profit Factor<b id="profitFactor">等待样本</b></div>
+  <div class="box">Max Drawdown<b id="maxDD">等待样本</b></div>
+ </div>
+ <div class="small" style="margin-top:10px">
+ 不预设虚假成功率。只有积累模拟交易结果后才计算策略表现。
+ </div>
 </div>
 
-<div class="box">
-市场风险
-<b id="marketRisk">—</b>
-</div>
+<div class="card">
+ <div class="title">🌍 Global Intelligence Engine</div>
+ <div class="grid">
+  <div class="box">技术风险<b id="techRisk">—</b></div>
+  <div class="box">Crypto Risk<b id="cryptoRisk">—</b></div>
+  <div class="box">Macro Risk<b class="yellow">DATA PENDING</b></div>
+  <div class="box">Geopolitical<b class="yellow">DATA PENDING</b></div>
+  <div class="box">Economic Events<b class="yellow">DATA PENDING</b></div>
+  <div class="box">X Sentiment<b class="yellow">DATA PENDING</b></div>
+ </div>
 
-<div class="box">
-宏观风险
-<b class="yellow">MONITOR</b>
-</div>
-
-<div class="box">
-地缘政治
-<b class="yellow">MONITOR</b>
-</div>
-
-</div>
-
-<div class="risk">
-<b>⚠️ EVENT RISK</b>
-<div class="small" style="margin-top:5px">
-V4 当前版本已经预留宏观经济、财经新闻及地缘政治风险接口。
-下一阶段接入实时新闻与经济事件数据。
-</div>
-</div>
-
+ <div class="alert">
+  <b>⚠️ DATA INTEGRITY</b>
+  <div class="small" style="margin-top:5px">
+   宏观、地缘政治、经济事件及 X 情绪只有连接真实数据源后才参与评分。
+   V4.1 不使用虚构新闻或虚构风险分数。
+  </div>
+ </div>
 </div>
 
 <div class="footer">
-仅用于市场研究及模拟分析，不构成投资建议。
-<br>
-ZEC AI Trading 360 V4
+ 仅用于市场研究、策略研究及模拟分析，不构成投资建议。<br>
+ ZEC AI Trading 360 V4.1
 </div>
 
 </main>
 
 <script>
-
 const HOSTS=[
-"https://data-api.binance.vision",
-"https://api.binance.com",
-"https://api1.binance.com",
-"https://api2.binance.com"
+ "https://data-api.binance.vision",
+ "https://api.binance.com",
+ "https://api1.binance.com",
+ "https://api2.binance.com"
 ];
 
 let TF="15m";
-let lastPrice=0;
+let MTF={m15:"NEUTRAL",h1:"NEUTRAL",h4:"NEUTRAL"};
+let CRYPTO={btc:0,eth:0};
 
 const $=id=>document.getElementById(id);
 
 async function api(path){
-
-for(const host of HOSTS){
-
-try{
-
-const controller=new AbortController();
-
-const timeout=setTimeout(
-()=>controller.abort(),5000
-);
-
-const r=await fetch(
-host+path,
-{
-cache:"no-store",
-signal:controller.signal
-}
-);
-
-clearTimeout(timeout);
-
-if(r.ok)
-return await r.json();
-
-}catch(e){}
-
-}
-
-throw new Error("API unavailable");
-
+ for(const host of HOSTS){
+  try{
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),5000);
+   const r=await fetch(host+path,{cache:"no-store",signal:controller.signal});
+   clearTimeout(timeout);
+   if(r.ok)return await r.json();
+  }catch(e){}
+ }
+ throw new Error("Market API unavailable");
 }
 
 function EMA(data,n){
-
-if(!data.length)return 0;
-
-let k=2/(n+1);
-let e=data[0];
-
-for(let i=1;i<data.length;i++)
-e=data[i]*k+e*(1-k);
-
-return e;
-
+ if(!data.length)return 0;
+ const k=2/(n+1);
+ let e=data[0];
+ for(let i=1;i<data.length;i++)e=data[i]*k+e*(1-k);
+ return e;
 }
 
 function RSI(data,n=14){
-
-if(data.length<n+1)return 50;
-
-let gain=0;
-let loss=0;
-
-for(let i=data.length-n;i<data.length;i++){
-
-let d=data[i]-data[i-1];
-
-if(d>0)gain+=d;
-else loss-=d;
-
-}
-
-if(loss===0)return 100;
-
-let rs=gain/loss;
-
-return 100-(100/(1+rs));
-
+ if(data.length<n+1)return 50;
+ let gain=0,loss=0;
+ for(let i=data.length-n;i<data.length;i++){
+  const d=data[i]-data[i-1];
+  if(d>0)gain+=d; else loss-=d;
+ }
+ if(loss===0)return 100;
+ const rs=gain/loss;
+ return 100-(100/(1+rs));
 }
 
 function ATR(bars,n=14){
-
-if(bars.length<n+1)return 0;
-
-let total=0;
-
-for(let i=bars.length-n;i<bars.length;i++){
-
-let high=+bars[i][2];
-let low=+bars[i][3];
-let prev=+bars[i-1][4];
-
-let tr=Math.max(
-high-low,
-Math.abs(high-prev),
-Math.abs(low-prev)
-);
-
-total+=tr;
-
-}
-
-return total/n;
-
+ if(bars.length<n+1)return 0;
+ let total=0;
+ for(let i=bars.length-n;i<bars.length;i++){
+  const h=+bars[i][2],l=+bars[i][3],p=+bars[i-1][4];
+  total+=Math.max(h-l,Math.abs(h-p),Math.abs(l-p));
+ }
+ return total/n;
 }
 
 function MACD(data){
-
-let m12=EMA(data.slice(-40),12);
-let m26=EMA(data.slice(-60),26);
-
-return m12-m26;
-
+ return EMA(data.slice(-80),12)-EMA(data.slice(-100),26);
 }
 
-function classify(data){
+function state(close){
+ const e20=EMA(close.slice(-100),20);
+ const e50=EMA(close.slice(-140),50);
+ const r=RSI(close);
+ if(e20>e50&&r>=50)return"BULLISH";
+ if(e20<e50&&r<=50)return"BEARISH";
+ return"NEUTRAL";
+}
 
-let e20=EMA(data.slice(-70),20);
-let e50=EMA(data.slice(-100),50);
-let r=RSI(data);
-
-if(e20>e50 && r>50)
-return "BULLISH";
-
-if(e20<e50 && r<50)
-return "BEARISH";
-
-return "NEUTRAL";
-
+function colorText(id,value){
+ const el=$(id);
+ el.innerText=value;
+ el.className=
+  value.includes("BULL")||value==="BUY"||value==="LOW"?"green":
+  value.includes("BEAR")||value==="SELL"||value==="HIGH"?"red":"yellow";
 }
 
 function setTF(tf,btn){
-
-TF=tf;
-
-document.querySelectorAll(".tf button")
-.forEach(x=>x.classList.remove("active"));
-
-btn.classList.add("active");
-
-loadMain();
-
+ TF=tf;
+ document.querySelectorAll(".tf button").forEach(x=>x.classList.remove("active"));
+ btn.classList.add("active");
+ loadMain();
 }
 
-async function loadMain(){
-
-try{
-
-$("status").innerText="● LIVE";
-$("status").className="green";
-
-const bars=await api(
-"/api/v3/klines?symbol=ZECUSDT&interval="
-+TF+
-"&limit=150"
-);
-
-const close=bars.map(x=>+x[4]);
-
-const price=close[close.length-1];
-
-lastPrice=price;
-
-const e20=EMA(close.slice(-80),20);
-const e50=EMA(close.slice(-120),50);
-const rsi=RSI(close);
-const atr=ATR(bars);
-const macd=MACD(close);
-
-$("price").innerText="$"+price.toFixed(2);
-
-$("ema20").innerText=e20.toFixed(2);
-$("ema50").innerText=e50.toFixed(2);
-$("rsi").innerText=rsi.toFixed(1);
-$("macd").innerText=macd.toFixed(3);
-$("atr").innerText=atr.toFixed(2);
-
-let trend="NEUTRAL";
-
-if(e20>e50)trend="BULLISH";
-if(e20<e50)trend="BEARISH";
-
-$("trend").innerText=trend;
-
-const recent=bars.slice(-60);
-
-const highs=recent.map(x=>+x[2]);
-const lows=recent.map(x=>+x[3]);
-
-const high=Math.max(...highs);
-const low=Math.min(...lows);
-
-const range=high-low;
-
-const fib382=high-range*.382;
-const fib50=high-range*.5;
-const fib618=high-range*.618;
-
-$("high").innerText=high.toFixed(2);
-$("low").innerText=low.toFixed(2);
-$("fib382").innerText=fib382.toFixed(2);
-$("fib50").innerText=fib50.toFixed(2);
-$("fib618").innerText=fib618.toFixed(2);
-
-const fibs=[
-["38.2%",fib382],
-["50%",fib50],
-["61.8%",fib618]
-];
-
-let nearest=fibs.reduce(
-(a,b)=>
-Math.abs(b[1]-price)<
-Math.abs(a[1]-price)?b:a
-);
-
-$("nearestFib").innerText=
-nearest[0]+" @ "+nearest[1].toFixed(2);
-
-let score=50;
-let reasons=[];
-
-if(e20>e50){
-score+=15;
-reasons.push("EMA 多头");
-}else{
-score-=15;
-reasons.push("EMA 空头");
-}
-
-if(rsi>52 && rsi<70){
-score+=10;
-reasons.push("RSI 多头动能");
-}
-
-if(rsi<48 && rsi>30){
-score-=10;
-reasons.push("RSI 空头动能");
-}
-
-if(rsi>=70){
-score-=5;
-reasons.push("RSI 超买");
-}
-
-if(rsi<=30){
-score+=5;
-reasons.push("RSI 超卖");
-}
-
-if(macd>0){
-score+=10;
-reasons.push("MACD 正值");
-}else{
-score-=10;
-reasons.push("MACD 负值");
-}
-
-if(price>fib618){
-score+=5;
-reasons.push("价格位于 Fib 61.8% 上方");
-}else{
-score-=5;
-reasons.push("价格位于 Fib 61.8% 下方");
-}
-
-score=Math.max(0,Math.min(100,score));
-
-let signal="WAIT";
-
-if(score>=68)signal="BUY";
-if(score<=32)signal="SELL";
-
-$("score").innerText=score+" / 100";
-$("scoreBar").style.width=score+"%";
-
-let s=$("signal");
-
-s.innerText=signal;
-
-s.className=
-"signal "+
-(signal==="BUY"?"green":
-signal==="SELL"?"red":"yellow");
-
-$("confidence").innerText=
-score>=80||score<=20
-?"HIGH":
-score>=65||score<=35
-?"MEDIUM":"LOW";
-
-$("reason").innerText=
-reasons.join(" · ");
-
-let direction=
-signal==="SELL"?-1:
-signal==="BUY"?1:0;
-
-$("entry").innerText=price.toFixed(2);
-
-if(direction!==0){
-
-let risk=Math.max(
-atr*1.5,
-price*.006
-);
-
-$("sl").innerText=
-(price-direction*risk).toFixed(2);
-
-$("tp1").innerText=
-(price+direction*risk).toFixed(2);
-
-$("tp2").innerText=
-(price+direction*risk*2).toFixed(2);
-
-$("tp3").innerText=
-(price+direction*risk*3).toFixed(2);
-
-}else{
-
-$("sl").innerText="WAIT";
-$("tp1").innerText="WAIT";
-$("tp2").innerText="WAIT";
-$("tp3").innerText="WAIT";
-
-}
-
-let atrPct=(atr/price)*100;
-
-$("riskLevel").innerText=
-atrPct>3?"HIGH":
-atrPct>1.5?"MEDIUM":"LOW";
-
-$("techRisk").innerText=
-rsi>70||rsi<30
-?"HIGH":"NORMAL";
-
-$("marketRisk").innerText=
-atrPct>3
-?"HIGH":
-atrPct>1.5
-?"MEDIUM":"LOW";
-
-$("updateTime").innerText=
-"更新时间："+
-new Date().toLocaleString(
-"zh-CN",
-{
-timeZone:"Asia/Kuala_Lumpur",
-hour12:false
-}
-)+" MYT";
-
-$("change").innerText=
-"周期："+TF+
-" · 自动刷新：5秒";
-
-}catch(e){
-
-$("status").innerText="● OFFLINE";
-$("status").className="red";
-
-}
-
+function strategyBadge(id,text){
+ const el=$(id);
+ el.innerText=text;
+ el.className="badge "+
+  (text.includes("BUY")||text.includes("BULL")?"green":
+   text.includes("SELL")||text.includes("BEAR")?"red":"yellow");
 }
 
 async function loadMulti(){
+ try{
+  const list=[["15m","tf15","m15"],["1h","tf1h","h1"],["4h","tf4h","h4"]];
+  for(const [tf,id,key] of list){
+   const bars=await api("/api/v3/klines?symbol=ZECUSDT&interval="+tf+"&limit=220");
+   const s=state(bars.map(x=>+x[4]));
+   MTF[key]=s;
+   colorText(id,s);
+  }
 
-try{
+  const values=Object.values(MTF);
+  const bull=values.filter(x=>x==="BULLISH").length;
+  const bear=values.filter(x=>x==="BEARISH").length;
 
-const periods=[
-["15m","tf15"],
-["1h","tf1h"],
-["4h","tf4h"]
-];
-
-let results=[];
-
-for(const [tf,id] of periods){
-
-const bars=await api(
-"/api/v3/klines?symbol=ZECUSDT&interval="
-+tf+
-"&limit=120"
-);
-
-const close=bars.map(x=>+x[4]);
-
-const state=classify(close);
-
-$(id).innerText=state;
-
-$(id).className=
-state==="BULLISH"
-?"green":
-state==="BEARISH"
-?"red":"yellow";
-
-results.push(state);
-
+  const a=bull===3?"STRONG BULL":
+          bear===3?"STRONG BEAR":
+          bull>=2?"BULLISH":
+          bear>=2?"BEARISH":"MIXED";
+  colorText("alignment",a);
+ }catch(e){}
 }
 
-let bull=
-results.filter(x=>x==="BULLISH").length;
+async function loadCrypto(){
+ try{
+  const btc=await api("/api/v3/ticker/24hr?symbol=BTCUSDT");
+  const eth=await api("/api/v3/ticker/24hr?symbol=ETHUSDT");
 
-let bear=
-results.filter(x=>x==="BEARISH").length;
+  CRYPTO.btc=+btc.priceChangePercent;
+  CRYPTO.eth=+eth.priceChangePercent;
 
-$("alignment").innerText=
-bull===3
-?"STRONG BULL":
-bear===3
-?"STRONG BEAR":
-bull>=2
-?"BULLISH":
-bear>=2
-?"BEARISH":"MIXED";
+  $("btcPrice").innerText="$"+Number(btc.lastPrice).toLocaleString(undefined,{maximumFractionDigits:0});
+  $("ethPrice").innerText="$"+Number(eth.lastPrice).toLocaleString(undefined,{maximumFractionDigits:0});
 
-}catch(e){}
+  $("btcChange").innerText=(CRYPTO.btc>=0?"+":"")+CRYPTO.btc.toFixed(2)+"%";
+  $("ethChange").innerText=(CRYPTO.eth>=0?"+":"")+CRYPTO.eth.toFixed(2)+"%";
 
+  $("btcChange").className=CRYPTO.btc>=0?"green":"red";
+  $("ethChange").className=CRYPTO.eth>=0?"green":"red";
+
+  const avg=(CRYPTO.btc+CRYPTO.eth)/2;
+
+  $("cryptoEnvironment").innerText=
+   avg>2?"BTC 与 ETH 风险偏好较强，对山寨币环境较有利。":
+   avg<-2?"BTC 与 ETH 明显走弱，ZEC 多头 Setup 需要额外谨慎。":
+   "BTC / ETH 整体环境暂时中性，主要依赖 ZEC 自身结构。";
+
+  colorText("cryptoRisk",avg<-3?"HIGH":Math.abs(avg)>1.5?"MEDIUM":"LOW");
+ }catch(e){}
 }
 
-async function loadBTC(){
+async function loadMain(){
+ try{
+  $("status").innerText="● LIVE";
+  $("status").className="green";
 
-try{
+  const bars=await api(
+   "/api/v3/klines?symbol=ZECUSDT&interval="+TF+"&limit=260"
+  );
 
-const data=await api(
-"/api/v3/ticker/24hr?symbol=BTCUSDT"
-);
+  const close=bars.map(x=>+x[4]);
+  const price=close.at(-1);
 
-const p=+data.lastPrice;
-const c=+data.priceChangePercent;
+  const e20=EMA(close.slice(-100),20);
+  const e50=EMA(close.slice(-160),50);
+  const e200=EMA(close,200);
+  const rsi=RSI(close);
+  const macd=MACD(close);
+  const atr=ATR(bars);
+  const atrPct=atr/price*100;
 
-$("btcPrice").innerText=
-"$"+p.toLocaleString(
-undefined,
-{maximumFractionDigits:0}
-);
+  $("price").innerText="$"+price.toFixed(2);
+  $("ema20").innerText=e20.toFixed(2);
+  $("ema50").innerText=e50.toFixed(2);
+  $("ema200").innerText=e200.toFixed(2);
+  $("rsi").innerText=rsi.toFixed(1);
+  $("macd").innerText=macd.toFixed(3);
+  $("atr").innerText=atr.toFixed(2);
 
-$("btcChange").innerText=
-(c>=0?"+":"")+c.toFixed(2)+"%";
+  const recent=bars.slice(-60);
+  const high=Math.max(...recent.map(x=>+x[2]));
+  const low=Math.min(...recent.map(x=>+x[3]));
+  const range=high-low;
 
-$("btcChange").className=
-c>=0?"green":"red";
+  const f382=high-range*.382;
+  const f50=high-range*.5;
+  const f618=high-range*.618;
 
-$("btcRisk").innerText=
-c>2
-?"BTC 风险偏好较强，对加密市场较有利。":
-c<-2
-?"BTC 明显走弱，ZEC 多头信号需要谨慎。":
-"BTC 市场环境暂时中性。";
+  $("high").innerText=high.toFixed(2);
+  $("low").innerText=low.toFixed(2);
+  $("fib382").innerText=f382.toFixed(2);
+  $("fib50").innerText=f50.toFixed(2);
+  $("fib618").innerText=f618.toFixed(2);
 
-}catch(e){}
+  const fibs=[["38.2%",f382],["50%",f50],["61.8%",f618]];
+  const nearest=fibs.reduce((a,b)=>Math.abs(b[1]-price)<Math.abs(a[1]-price)?b:a);
+  $("nearestFib").innerText=nearest[0]+" @ "+nearest[1].toFixed(2);
 
+  let trend="NEUTRAL";
+  let trendPoints=0;
+
+  if(e20>e50){trendPoints++}
+  if(e20<e50){trendPoints--}
+  if(e50>e200){trendPoints++}
+  if(e50<e200){trendPoints--}
+  if(macd>0){trendPoints++}
+  if(macd<0){trendPoints--}
+
+  const bulls=Object.values(MTF).filter(x=>x==="BULLISH").length;
+  const bears=Object.values(MTF).filter(x=>x==="BEARISH").length;
+
+  if(bulls>=2)trendPoints++;
+  if(bears>=2)trendPoints--;
+
+  if(trendPoints>=2)trend="BULLISH";
+  if(trendPoints<=-2)trend="BEARISH";
+
+  colorText("mainTrend","MAIN TREND · "+trend);
+
+  let setup=50;
+  if(trend==="BULLISH")setup+=15;
+  if(trend==="BEARISH")setup+=15;
+  if(bulls===3||bears===3)setup+=15;
+  else if(bulls>=2||bears>=2)setup+=8;
+  if(Math.abs(macd)>atr*.15)setup+=8;
+  if(e20!==e50)setup+=7;
+  if(CRYPTO.btc>2&&trend==="BULLISH")setup+=5;
+  if(CRYPTO.btc<-2&&trend==="BEARISH")setup+=5;
+  setup=Math.min(100,Math.max(0,setup));
+
+  let entryQuality=70;
+  let chase="LOW";
+  let action="WAIT";
+  let reasons=[];
+
+  const extension=Math.abs(price-e20)/(atr||1);
+
+  if(trend==="BEARISH"){
+   reasons.push("主要结构偏空");
+
+   if(rsi<=30){
+    action="WAIT FOR PULLBACK";
+    entryQuality-=35;
+    chase="HIGH";
+    reasons.push("RSI 已超卖，当前追空风险高");
+   }else if(rsi<48){
+    action="SELL SETUP";
+    reasons.push("RSI 保持空头动能");
+   }else{
+    action="WAIT FOR CONFIRMATION";
+    entryQuality-=15;
+    reasons.push("等待反弹后的空头确认");
+   }
+  }
+
+  if(trend==="BULLISH"){
+   reasons.push("主要结构偏多");
+
+   if(rsi>=70){
+    action="WAIT FOR PULLBACK";
+    entryQuality-=35;
+    chase="HIGH";
+    reasons.push("RSI 已超买，当前追多风险高");
+   }else if(rsi>52){
+    action="BUY SETUP";
+    reasons.push("RSI 保持多头动能");
+   }else{
+    action="WAIT FOR CONFIRMATION";
+    entryQuality-=15;
+    reasons.push("等待回调后的多头确认");
+   }
+  }
+
+  if(trend==="NEUTRAL"){
+   action="WAIT";
+   entryQuality=35;
+   chase="MEDIUM";
+   reasons.push("趋势结构没有形成足够共识");
+  }
+
+  if(extension>1.5){
+   entryQuality-=20;
+   chase="HIGH";
+   reasons.push("价格距离 EMA20 超过约 1.5 ATR");
+  }
+
+  if(bulls>0&&bears>0){
+   entryQuality-=10;
+   reasons.push("多周期仍存在分歧");
+  }else if(bulls===3||bears===3){
+   entryQuality+=10;
+   reasons.push("15m / 1H / 4H 形成较强共振");
+  }
+
+  if(atrPct>3){
+   entryQuality-=10;
+   reasons.push("当前波动率较高");
+  }
+
+  entryQuality=Math.max(0,Math.min(100,entryQuality));
+
+  colorText("action",action);
+  colorText("chaseRisk",chase);
+
+  $("setupScore").innerText=Math.round(setup)+" / 100";
+  $("entryScore").innerText=Math.round(entryQuality)+" / 100";
+  $("setupBar").style.width=setup+"%";
+
+  $("why").innerHTML=reasons.map((x,i)=>(i+1)+"、"+x).join("<br>");
+
+  strategyBadge(
+   "strTrend",
+   trend==="BULLISH"?"BUY BIAS":
+   trend==="BEARISH"?"SELL BIAS":"WAIT"
+  );
+
+  let pullback="WAIT";
+  if(trend==="BEARISH"&&rsi>35&&rsi<55)pullback="SELL READY";
+  if(trend==="BULLISH"&&rsi>45&&rsi<68)pullback="BUY READY";
+  if(rsi<=30||rsi>=70)pullback="WAIT";
+  strategyBadge("strPullback",pullback);
+
+  const prevHigh=Math.max(...bars.slice(-31,-1).map(x=>+x[2]));
+  const prevLow=Math.min(...bars.slice(-31,-1).map(x=>+x[3]));
+  let breakout="NO SETUP";
+  if(price>prevHigh&&trend==="BULLISH")breakout="BUY BREAKOUT";
+  if(price<prevLow&&trend==="BEARISH")breakout="SELL BREAKOUT";
+  strategyBadge("strBreakout",breakout);
+
+  let mean="NEUTRAL";
+  if(rsi<=30)mean="REBOUND RISK";
+  if(rsi>=70)mean="PULLBACK RISK";
+  strategyBadge("strMean",mean);
+
+  const actionable=
+   (action==="BUY SETUP"||action==="SELL SETUP") &&
+   entryQuality>=55;
+
+  if(actionable){
+   const dir=action==="BUY SETUP"?1:-1;
+   const risk=Math.max(atr*1.5,price*.006);
+
+   $("entry").innerText=price.toFixed(2);
+   $("sl").innerText=(price-dir*risk).toFixed(2);
+   $("tp1").innerText=(price+dir*risk).toFixed(2);
+   $("tp2").innerText=(price+dir*risk*2).toFixed(2);
+   $("tp3").innerText=(price+dir*risk*3).toFixed(2);
+
+   $("planStatus").innerHTML=
+    "<b>SETUP ACTIVE</b><br><span class='small'>"+
+    "这是规则型参考计划；入场前仍需确认价格结构。"+
+    "</span>";
+  }else{
+   ["entry","sl","tp1","tp2","tp3"].forEach(id=>$(id).innerText="WAIT");
+   $("planStatus").innerHTML=
+    "<b>NO CHASE / WAIT</b><br><span class='small'>"+
+    "当前没有达到 V4.1 的入场质量门槛，因此不强制生成交易。"+
+    "</span>";
+  }
+
+  colorText(
+   "techRisk",
+   rsi<=30||rsi>=70||extension>1.5?"HIGH":
+   atrPct>1.5?"MEDIUM":"LOW"
+  );
+
+  $("change").innerText="周期："+TF+" · 自动刷新：5秒";
+
+  $("updateTime").innerText=
+   "更新时间："+new Date().toLocaleString(
+    "zh-CN",{timeZone:"Asia/Kuala_Lumpur",hour12:false}
+   )+" MYT";
+
+ }catch(e){
+  $("status").innerText="● OFFLINE";
+  $("status").className="red";
+ }
 }
 
 async function refresh(){
-
-await loadMain();
-
+ await loadMain();
 }
 
-loadMain();
-loadMulti();
-loadBTC();
+async function init(){
+ await Promise.all([loadMulti(),loadCrypto()]);
+ await loadMain();
+}
+
+init();
 
 setInterval(refresh,5000);
 
-setInterval(()=>{
-loadMulti();
-loadBTC();
+setInterval(async()=>{
+ await Promise.all([loadMulti(),loadCrypto()]);
+ await loadMain();
 },60000);
-
 </script>
 
 </body>
