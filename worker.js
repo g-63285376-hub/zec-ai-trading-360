@@ -1,10 +1,3 @@
-const BINANCE_HOSTS = [
-  "https://data-api.binance.vision",
-  "https://api.binance.com",
-  "https://api1.binance.com",
-  "https://api2.binance.com"
-];
-
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -20,129 +13,318 @@ function json(data, status = 200) {
   });
 }
 
+async function fetchJSON(url, timeout = 7000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 ZEC-AI-Trading-360"
+      },
+      signal: controller.signal
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/*
+  V4.2.1 MARKET DATA GATEWAY
+
+  Priority:
+  1. Binance Vision
+  2. Binance API
+  3. CoinGecko fallback
+
+  The fallback prevents the complete intelligence engine
+  from failing when Binance blocks a Cloudflare IP.
+*/
+
+const BINANCE_HOSTS = [
+  "https://data-api.binance.vision",
+  "https://api.binance.com",
+  "https://api1.binance.com",
+  "https://api2.binance.com",
+  "https://api3.binance.com"
+];
+
 async function binance(path) {
-  let lastError = "";
+  const errors = [];
 
   for (const host of BINANCE_HOSTS) {
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(host + path, {
-        signal: controller.signal,
-        headers: {
-          "Accept": "application/json"
-        }
-      });
-
-      clearTimeout(timer);
-
-      if (!response.ok) {
-        lastError = `${host}: HTTP ${response.status}`;
-        continue;
-      }
-
+      const data = await fetchJSON(host + path);
       return {
-        data: await response.json(),
-        source: host
+        ok: true,
+        source: host,
+        data
       };
-    } catch (error) {
-      lastError = `${host}: ${error.message}`;
+    } catch (e) {
+      errors.push(`${host}: ${e.message}`);
     }
   }
 
-  throw new Error(lastError || "All market data sources failed");
-}
-
-async function ticker(symbol) {
-  const result = await binance(
-    `/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`
-  );
-
-  const d = result.data;
-
   return {
-    symbol,
-    price: Number(d.lastPrice),
-    change24h: Number(d.priceChangePercent),
-    high24h: Number(d.highPrice),
-    low24h: Number(d.lowPrice),
-    volume: Number(d.volume),
-    quoteVolume: Number(d.quoteVolume),
-    source: result.source
+    ok: false,
+    errors
   };
 }
 
-async function klines(symbol, interval = "1h", limit = 200) {
-  const allowed = new Set([
-    "5m", "15m", "30m", "1h", "4h", "1d"
-  ]);
+const COINGECKO_IDS = {
+  ZEC: "zcash",
+  BTC: "bitcoin",
+  ETH: "ethereum"
+};
 
-  if (!allowed.has(interval)) interval = "1h";
+async function coinGeckoPrices() {
+  const url =
+    "https://api.coingecko.com/api/v3/simple/price" +
+    "?ids=zcash,bitcoin,ethereum" +
+    "&vs_currencies=usd" +
+    "&include_24hr_change=true" +
+    "&include_last_updated_at=true";
 
-  limit = Math.min(Math.max(Number(limit) || 200, 50), 500);
+  try {
+    const d = await fetchJSON(url);
 
-  const result = await binance(
-    `/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=${limit}`
+    return {
+      ok: true,
+      source: "CoinGecko",
+      data: d
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e.message
+    };
+  }
+}
+
+async function getTicker(symbol) {
+  const r = await binance(
+    `/api/v3/ticker/24hr?symbol=${symbol}USDT`
   );
 
-  return {
-    symbol,
-    interval,
-    source: result.source,
-    candles: result.data.map(k => ({
-      openTime: k[0],
-      open: Number(k[1]),
-      high: Number(k[2]),
-      low: Number(k[3]),
-      close: Number(k[4]),
-      volume: Number(k[5]),
-      closeTime: k[6]
-    }))
-  };
+  if (r.ok) {
+    return {
+      symbol,
+      price: Number(r.data.lastPrice),
+      change24h: Number(r.data.priceChangePercent),
+      high24h: Number(r.data.highPrice),
+      low24h: Number(r.data.lowPrice),
+      volume: Number(r.data.volume),
+      quoteVolume: Number(r.data.quoteVolume),
+      source: "Binance",
+      sourceHost: r.source
+    };
+  }
+
+  return null;
 }
 
 async function marketSnapshot() {
-  const results = await Promise.allSettled([
-    ticker("ZECUSDT"),
-    ticker("BTCUSDT"),
-    ticker("ETHUSDT")
-  ]);
-
-  const names = ["ZEC", "BTC", "ETH"];
-  const market = {};
   const errors = [];
 
-  results.forEach((result, index) => {
-    if (result.status === "fulfilled") {
-      market[names[index]] = result.value;
+  let ZEC = await getTicker("ZEC");
+  let BTC = await getTicker("BTC");
+  let ETH = await getTicker("ETH");
+
+  if (!ZEC || !BTC || !ETH) {
+    const cg = await coinGeckoPrices();
+
+    if (cg.ok) {
+      for (const symbol of ["ZEC", "BTC", "ETH"]) {
+        const id = COINGECKO_IDS[symbol];
+        const item = cg.data[id];
+
+        if (!item) continue;
+
+        const value = {
+          symbol,
+          price: Number(item.usd),
+          change24h: Number(item.usd_24h_change || 0),
+          source: "CoinGecko",
+          lastUpdated:
+            item.last_updated_at
+              ? new Date(item.last_updated_at * 1000).toISOString()
+              : null
+        };
+
+        if (symbol === "ZEC" && !ZEC) ZEC = value;
+        if (symbol === "BTC" && !BTC) BTC = value;
+        if (symbol === "ETH" && !ETH) ETH = value;
+      }
     } else {
-      market[names[index]] = null;
-      errors.push(`${names[index]}: ${result.reason?.message || "Unavailable"}`);
+      errors.push(`CoinGecko: ${cg.error}`);
     }
-  });
-
-  let regime = "NEUTRAL";
-  let score = 0;
-
-  if (market.BTC) {
-    if (market.BTC.change24h > 1) score++;
-    if (market.BTC.change24h < -1) score--;
   }
 
-  if (market.ETH) {
-    if (market.ETH.change24h > 1) score++;
-    if (market.ETH.change24h < -1) score--;
-  }
-
-  if (score >= 1) regime = "RISK-ON";
-  if (score <= -1) regime = "RISK-OFF";
+  if (!ZEC) errors.push("ZEC market data unavailable");
+  if (!BTC) errors.push("BTC market data unavailable");
+  if (!ETH) errors.push("ETH market data unavailable");
 
   return {
-    market,
-    regime,
-    regimeScore: score,
+    ZEC,
+    BTC,
+    ETH,
     errors
+  };
+}
+
+function calculateRegime(market) {
+  let score = 0;
+  const reasons = [];
+
+  const btc = market.BTC;
+  const eth = market.ETH;
+  const zec = market.ZEC;
+
+  if (btc) {
+    if (btc.change24h >= 2) {
+      score += 2;
+      reasons.push("BTC 24H momentum positive");
+    } else if (btc.change24h <= -2) {
+      score -= 2;
+      reasons.push("BTC 24H momentum negative");
+    }
+  }
+
+  if (eth) {
+    if (eth.change24h >= 2) {
+      score += 1;
+      reasons.push("ETH 24H momentum positive");
+    } else if (eth.change24h <= -2) {
+      score -= 1;
+      reasons.push("ETH 24H momentum negative");
+    }
+  }
+
+  if (zec) {
+    if (zec.change24h >= 3) {
+      score += 1;
+      reasons.push("ZEC 24H momentum positive");
+    } else if (zec.change24h <= -3) {
+      score -= 1;
+      reasons.push("ZEC 24H momentum negative");
+    }
+  }
+
+  let regime = "NEUTRAL";
+
+  if (score >= 2) regime = "RISK-ON";
+  if (score <= -2) regime = "RISK-OFF";
+
+  return {
+    regime,
+    score,
+    reasons
+  };
+}
+
+async function getKlines(symbol, interval, limit) {
+  const safeSymbols = ["ZECUSDT", "BTCUSDT", "ETHUSDT"];
+  const safeIntervals = [
+    "1m", "3m", "5m", "15m", "30m",
+    "1h", "2h", "4h", "6h", "12h", "1d"
+  ];
+
+  if (!safeSymbols.includes(symbol)) {
+    throw new Error("Unsupported symbol");
+  }
+
+  if (!safeIntervals.includes(interval)) {
+    throw new Error("Unsupported interval");
+  }
+
+  limit = Math.min(Math.max(Number(limit) || 200, 10), 500);
+
+  const r = await binance(
+    `/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+  );
+
+  if (!r.ok) {
+    throw new Error(r.errors.join(" | "));
+  }
+
+  return {
+    source: "Binance",
+    sourceHost: r.source,
+    symbol,
+    interval,
+    candles: r.data
+  };
+}
+
+async function intelligence() {
+  const market = await marketSnapshot();
+  const regime = calculateRegime(market);
+
+  return {
+    ok: Boolean(market.ZEC),
+    service: "ZEC AI Intelligence",
+    version: "4.2.1",
+    timestamp: new Date().toISOString(),
+
+    market: {
+      ZEC: market.ZEC,
+      BTC: market.BTC,
+      ETH: market.ETH
+    },
+
+    marketRegime: {
+      status: regime.regime,
+      score: regime.score,
+      reasons: regime.reasons
+    },
+
+    intelligence: {
+      technicalRisk: market.ZEC ? "ACTIVE" : "DATA PENDING",
+      cryptoRisk:
+        market.BTC && market.ETH ? "ACTIVE" : "DATA PENDING",
+
+      macroRisk: {
+        status: "DATA PENDING",
+        integrity:
+          "No macro score is generated until verified live macro data is connected."
+      },
+
+      geopoliticalRisk: {
+        status: "DATA PENDING",
+        integrity:
+          "No geopolitical score is generated from fabricated or unverified headlines."
+      },
+
+      economicEvents: {
+        status: "DATA PENDING",
+        integrity:
+          "Economic calendar source not connected yet."
+      },
+
+      sentiment: {
+        status: "DATA PENDING",
+        integrity:
+          "Social sentiment source not connected yet."
+      }
+    },
+
+    dataIntegrity: {
+      liveMarketConnected: Boolean(market.ZEC),
+      BTCConnected: Boolean(market.BTC),
+      ETHConnected: Boolean(market.ETH),
+      errors: market.errors
+    },
+
+    disclaimer:
+      "Market research and simulation only. Not investment advice."
   };
 }
 
@@ -155,6 +337,16 @@ export default {
       });
     }
 
+    if (request.method !== "GET") {
+      return json(
+        {
+          ok: false,
+          error: "Method not allowed"
+        },
+        405
+      );
+    }
+
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -163,132 +355,109 @@ export default {
         return json({
           ok: true,
           service: "ZEC AI Intelligence",
-          version: "4.2",
+          version: "4.2.1",
           status: "ONLINE",
-          architecture: "Cloudflare Worker Intelligence Gateway",
+          architecture:
+            "Cloudflare Worker Multi-Source Intelligence Gateway",
           timestamp: new Date().toISOString(),
+
           modules: {
             marketGateway: "ACTIVE",
+            binanceFallback: "ACTIVE",
+            coinGeckoFallback: "ACTIVE",
             btcContext: "ACTIVE",
             ethContext: "ACTIVE",
             macroEngine: "READY",
             geopoliticalEngine: "READY",
             eventRiskEngine: "READY"
           },
+
           disclaimer:
             "Market research and simulation only. Not investment advice."
         });
       }
 
       if (path === "/api/market") {
-        const snapshot = await marketSnapshot();
+        const market = await marketSnapshot();
+        const regime = calculateRegime(market);
 
         return json({
-          ok: true,
-          version: "4.2",
+          ok: Boolean(market.ZEC),
+          version: "4.2.1",
           timestamp: new Date().toISOString(),
-          ...snapshot
+          market: {
+            ZEC: market.ZEC,
+            BTC: market.BTC,
+            ETH: market.ETH
+          },
+          regime: regime.regime,
+          regimeScore: regime.score,
+          reasons: regime.reasons,
+          errors: market.errors
         });
       }
 
       if (path === "/api/zec") {
+        const market = await marketSnapshot();
+
         return json({
-          ok: true,
-          version: "4.2",
+          ok: Boolean(market.ZEC),
+          version: "4.2.1",
           timestamp: new Date().toISOString(),
-          data: await ticker("ZECUSDT")
+          ZEC: market.ZEC,
+          errors: market.errors
         });
       }
 
       if (path === "/api/klines") {
-        const symbol = (
-          url.searchParams.get("symbol") || "ZECUSDT"
-        ).toUpperCase();
+        const symbol =
+          (url.searchParams.get("symbol") || "ZECUSDT").toUpperCase();
 
-        const permittedSymbols = new Set([
-          "ZECUSDT",
-          "BTCUSDT",
-          "ETHUSDT"
-        ]);
+        const interval =
+          url.searchParams.get("interval") || "1h";
 
-        if (!permittedSymbols.has(symbol)) {
-          return json({
-            ok: false,
-            error: "Unsupported symbol"
-          }, 400);
-        }
+        const limit =
+          url.searchParams.get("limit") || "200";
 
-        const interval = url.searchParams.get("interval") || "1h";
-        const limit = url.searchParams.get("limit") || 200;
+        const result =
+          await getKlines(symbol, interval, limit);
 
         return json({
           ok: true,
-          version: "4.2",
+          version: "4.2.1",
           timestamp: new Date().toISOString(),
-          data: await klines(symbol, interval, limit)
+          ...result
         });
       }
 
       if (path === "/api/intelligence") {
-        const snapshot = await marketSnapshot();
-
-        return json({
-          ok: true,
-          version: "4.2",
-          timestamp: new Date().toISOString(),
-
-          cryptoMarket: snapshot,
-
-          macro: {
-            status: "READY_FOR_SECURE_DATA_SOURCE",
-            risk: "MONITOR",
-            dxy: null,
-            us10y: null,
-            gold: null,
-            oil: null,
-            sp500: null,
-            nasdaq: null
-          },
-
-          geopolitical: {
-            status: "READY_FOR_SECURE_NEWS_SOURCE",
-            risk: "MONITOR",
-            events: []
-          },
-
-          economicEvents: {
-            status: "READY_FOR_SECURE_CALENDAR_SOURCE",
-            risk: "MONITOR",
-            events: []
-          },
-
-          dataIntegrity: {
-            fabricatedData: false,
-            missingDataPolicy: "DISPLAY_AS_UNAVAILABLE",
-            privateKeysExposedToBrowser: false
-          }
-        });
+        return json(await intelligence());
       }
 
-      return json({
-        ok: false,
-        error: "Endpoint not found",
-        availableEndpoints: [
-          "/health",
-          "/api/market",
-          "/api/zec",
-          "/api/klines?symbol=ZECUSDT&interval=1h&limit=200",
-          "/api/intelligence"
-        ]
-      }, 404);
-
-    } catch (error) {
-      return json({
-        ok: false,
-        version: "4.2",
-        error: error.message || "Unknown server error",
-        timestamp: new Date().toISOString()
-      }, 500);
+      return json(
+        {
+          ok: false,
+          error: "Endpoint not found",
+          availableEndpoints: [
+            "/health",
+            "/api/market",
+            "/api/zec",
+            "/api/klines?symbol=ZECUSDT&interval=1h&limit=200",
+            "/api/intelligence"
+          ]
+        },
+        404
+      );
+    } catch (e) {
+      return json(
+        {
+          ok: false,
+          version: "4.2.1",
+          error: e.message,
+          timestamp: new Date().toISOString()
+        },
+        500
+      );
     }
   }
 };
