@@ -4,107 +4,69 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07111f">
-<title>ZEC AI Trading 360 V4.3</title>
+<title>ZEC AI Trading 360 V4.4</title>
 
 <style>
 *{box-sizing:border-box}
 body{
-  margin:0;
-  background:#07111f;
-  color:#fff;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+  margin:0;background:#07111f;color:#fff;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif
 }
 header{
-  padding:16px;
-  background:#0d1930;
-  border-bottom:1px solid #263850;
-  position:sticky;
-  top:0;
-  z-index:10
+  padding:24px 18px;background:#101d38;
+  border-bottom:1px solid #30415e
 }
-.logo{font-size:21px;font-weight:900;color:#59a7ff}
-.sub{font-size:12px;color:#91a4ba;margin-top:4px}
-main{max-width:800px;margin:auto;padding:12px}
+.logo{font-size:28px;font-weight:900;color:#67a2ff}
+.sub{color:#9aaac5;margin-top:6px;line-height:1.4}
+main{max-width:800px;margin:auto;padding:14px}
 .card{
-  background:#111d33;
-  border:1px solid #263850;
-  border-radius:16px;
-  padding:15px;
-  margin-bottom:12px
+  background:#121f39;border:1px solid #30415e;
+  border-radius:18px;padding:18px;margin:14px 0
 }
-h2{font-size:16px;margin:0 0 12px}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:10px
-}
-.metric{
-  background:#0a1527;
-  border-radius:12px;
-  padding:11px
-}
-.label{font-size:11px;color:#8fa4bb}
-.value{font-size:18px;font-weight:800;margin-top:4px}
-.small{font-size:12px;color:#9fb1c5}
-.bigprice{font-size:34px;font-weight:900}
-.green{color:#35d07f}
-.red{color:#ff6474}
-.yellow{color:#ffc857}
-.blue{color:#59a7ff}
-.gray{color:#9fb1c5}
-.badge{
-  display:inline-block;
-  padding:6px 10px;
-  border-radius:20px;
-  font-size:12px;
-  font-weight:800;
-  background:#24334b
-}
+h2{margin:0 0 16px;font-size:21px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.box{background:#0b162c;border-radius:15px;padding:15px}
+.label{color:#98a8c2;font-size:14px;font-weight:700}
+.big{font-size:29px;font-weight:900;margin-top:7px}
+.price{font-size:42px;font-weight:900}
+.green{color:#65db8d}
+.red{color:#ff737d}
+.yellow{color:#ffd166}
+.blue{color:#67a2ff}
+.muted{color:#98a8c2}
 .row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  margin:8px 0
+  display:flex;justify-content:space-between;
+  gap:10px;margin:12px 0;align-items:center
 }
+.value{font-weight:900;text-align:right}
 .bar{
-  height:9px;
-  background:#263850;
-  border-radius:10px;
-  overflow:hidden;
-  margin-top:8px
+  height:10px;background:#2a3b58;border-radius:8px;
+  overflow:hidden;margin-top:8px
 }
 .fill{
-  height:100%;
-  width:50%;
-  background:linear-gradient(90deg,#ff6474,#ffc857,#35d07f)
+  height:100%;width:50%;
+  background:linear-gradient(90deg,#ff737d,#ffd166,#65db8d)
 }
 .reason{
-  padding:8px 0;
-  border-bottom:1px solid #223149;
-  font-size:13px
+  padding:11px 0;border-bottom:1px solid #293a57;
+  line-height:1.45
 }
-.reason:last-child{border:0}
-.statusdot{
-  width:8px;height:8px;border-radius:50%;
-  display:inline-block;margin-right:5px;background:#35d07f
+.reason:last-child{border-bottom:0}
+.pill{
+  display:inline-block;padding:6px 11px;border-radius:20px;
+  background:#243653;font-weight:800;font-size:13px
 }
 button{
-  background:#1e6fff;
-  color:#fff;
-  border:0;
-  padding:10px 14px;
-  border-radius:10px;
-  font-weight:700
+  border:0;border-radius:12px;background:#3777f6;
+  color:white;padding:12px 18px;font-size:15px;font-weight:800
 }
 footer{
-  padding:20px 12px 35px;
-  text-align:center;
-  color:#71869d;
-  font-size:11px
+  text-align:center;color:#8191aa;
+  padding:35px 20px 50px;font-size:13px;line-height:1.5
 }
-@media(min-width:650px){
-  .grid{grid-template-columns:repeat(4,1fr)}
+@media(max-width:480px){
+  .price{font-size:38px}
+  .big{font-size:25px}
 }
 </style>
 </head>
@@ -114,7 +76,7 @@ footer{
 <header>
   <div class="logo">ZEC AI Trading 360</div>
   <div class="sub">
-    V4.3 · Multi-Source Intelligence · Market Research & Simulation
+    V4.4 · Global Macro Intelligence · Market Research & Simulation
   </div>
 </header>
 
@@ -124,155 +86,184 @@ footer{
   <div class="row">
     <div>
       <div class="label">ZEC 市场基准价格</div>
-      <div id="zecPrice" class="bigprice">--</div>
+      <div id="zecPrice" class="price">--</div>
     </div>
     <div style="text-align:right">
-      <div id="liveBadge" class="badge">CONNECTING</div>
-      <div id="updated" class="small" style="margin-top:7px">--</div>
+      <span id="live" class="pill">● CONNECTING</span>
+      <div id="time" class="muted" style="margin-top:8px">--</div>
     </div>
   </div>
 
-  <div class="grid" style="margin-top:12px">
-    <div class="metric">
+  <div class="grid">
+    <div class="box">
       <div class="label">1H</div>
-      <div id="zec1h" class="value">--</div>
+      <div id="zec1h" class="big">--</div>
     </div>
-    <div class="metric">
+    <div class="box">
       <div class="label">24H</div>
-      <div id="zec24h" class="value">--</div>
+      <div id="zec24h" class="big">--</div>
     </div>
-    <div class="metric">
+    <div class="box">
       <div class="label">7D</div>
-      <div id="zec7d" class="value">--</div>
+      <div id="zec7d" class="big">--</div>
     </div>
-    <div class="metric">
+    <div class="box">
       <div class="label">数据源</div>
-      <div id="zecSource" class="value" style="font-size:15px">--</div>
+      <div id="marketSource" class="big" style="font-size:20px">--</div>
     </div>
   </div>
 </div>
+
 
 <div class="card">
   <h2>AI Market Decision Engine</h2>
 
   <div class="grid">
-    <div class="metric">
+    <div class="box">
       <div class="label">TREND 趋势</div>
-      <div id="trend" class="value">--</div>
+      <div id="trend" class="big">--</div>
     </div>
 
-    <div class="metric">
+    <div class="box">
       <div class="label">ACTION 行动</div>
-      <div id="action" class="value">--</div>
+      <div id="action" class="big">--</div>
     </div>
 
-    <div class="metric">
+    <div class="box">
       <div class="label">SETUP SCORE</div>
-      <div id="setupScore" class="value">--</div>
+      <div id="setup" class="big">--</div>
     </div>
 
-    <div class="metric">
+    <div class="box">
       <div class="label">CHASE RISK</div>
-      <div id="chaseRisk" class="value">--</div>
+      <div id="chase" class="big">--</div>
     </div>
   </div>
 
-  <div style="margin-top:14px">
+  <div style="margin-top:18px">
     <div class="row">
-      <span class="small">Entry Quality 入场质量</span>
-      <strong id="entryQuality">--</strong>
+      <span class="label">Entry Quality 入场质量</span>
+      <span id="entryText" class="value">--</span>
     </div>
-    <div class="bar">
-      <div id="scoreBar" class="fill"></div>
-    </div>
+    <div class="bar"><div id="entryBar" class="fill"></div></div>
   </div>
 </div>
+
 
 <div class="card">
   <h2>为什么？ · Why?</h2>
-  <div id="reasons">
-    <div class="small">正在分析市场...</div>
+  <div id="why">
+    <div class="muted">正在建立市场与宏观判断...</div>
   </div>
 </div>
+
 
 <div class="card">
   <h2>BTC / ETH 市场环境</h2>
 
   <div class="grid">
-    <div class="metric">
+    <div class="box">
       <div class="label">BTC</div>
-      <div id="btcPrice" class="value">--</div>
-      <div id="btc24" class="small">--</div>
+      <div id="btcPrice" class="big">--</div>
+      <div id="btc24">--</div>
     </div>
 
-    <div class="metric">
+    <div class="box">
       <div class="label">ETH</div>
-      <div id="ethPrice" class="value">--</div>
-      <div id="eth24" class="small">--</div>
+      <div id="ethPrice" class="big">--</div>
+      <div id="eth24">--</div>
     </div>
 
-    <div class="metric">
+    <div class="box">
       <div class="label">MARKET REGIME</div>
-      <div id="regime" class="value">--</div>
+      <div id="marketRegime" class="big">--</div>
     </div>
 
-    <div class="metric">
+    <div class="box">
       <div class="label">ZEC RELATIVE STRENGTH</div>
-      <div id="relative" class="value">--</div>
+      <div id="relative" class="big">--</div>
     </div>
   </div>
 </div>
+
+
+<div class="card">
+  <h2>Global Macro Intelligence</h2>
+
+  <div class="grid">
+    <div class="box">
+      <div class="label">MACRO REGIME</div>
+      <div id="macroRegime" class="big">--</div>
+    </div>
+
+    <div class="box">
+      <div class="label">MACRO RISK</div>
+      <div id="macroRisk" class="big">--</div>
+    </div>
+  </div>
+
+  <div id="macroIndicators" style="margin-top:15px">
+    <div class="muted">正在读取 FRED...</div>
+  </div>
+
+  <div style="margin-top:14px">
+    <div class="label">Macro Drivers</div>
+    <div id="macroReasons"></div>
+  </div>
+</div>
+
 
 <div class="card">
   <h2>Risk Engine</h2>
 
   <div class="row">
     <span>市场风险</span>
-    <strong id="marketRisk">--</strong>
+    <span id="marketRisk" class="value">--</span>
   </div>
 
   <div class="row">
     <span>波动风险</span>
-    <strong id="volRisk">--</strong>
+    <span id="volRisk" class="value">--</span>
   </div>
 
   <div class="row">
     <span>宏观经济</span>
-    <strong class="yellow">NEXT · V4.4</strong>
+    <span id="riskMacro" class="value">--</span>
   </div>
 
   <div class="row">
     <span>地缘政治</span>
-    <strong class="yellow">NEXT · V4.4</strong>
+    <span class="value yellow">NEXT · V4.5</span>
   </div>
 
   <div class="row">
     <span>重大经济事件</span>
-    <strong class="yellow">NEXT · V4.4</strong>
+    <span class="value yellow">NEXT · V4.5</span>
   </div>
 </div>
+
 
 <div class="card">
   <h2>Data Quality Monitor</h2>
 
   <div class="row">
     <span>Worker</span>
-    <strong id="workerStatus">CONNECTING</strong>
+    <span id="workerStatus" class="value">CONNECTING</span>
   </div>
 
   <div class="row">
-    <span>Primary Source</span>
-    <strong id="primarySource">--</strong>
+    <span>Market Source</span>
+    <span id="sourceStatus" class="value">--</span>
   </div>
 
   <div class="row">
-    <span>Fallback Used</span>
-    <strong id="fallback">--</strong>
+    <span>FRED Macro</span>
+    <span id="fredStatus" class="value">--</span>
   </div>
 
   <div class="row">
     <span>Worker Version</span>
-    <strong id="workerVersion">--</strong>
+    <span id="version" class="value">--</span>
   </div>
 
   <button onclick="refreshAll()">立即刷新</button>
@@ -282,45 +273,61 @@ footer{
 
 <footer>
 仅用于市场研究及模拟分析，不构成投资建议。<br>
-价格基准与实际交易所成交价可能存在差异。
+价格基准与实际交易所成交价可能存在差异。<br>
+宏观数据用于风险过滤，不单独产生交易信号。
 </footer>
+
 
 <script>
 
 const WORKER =
 "https://zec-ai-intelligence-v42.g-63285376.workers.dev";
 
-const $ = id => document.getElementById(id);
+let MARKET=null;
+let MACRO=null;
 
-function money(n){
-  if(n==null || !Number.isFinite(Number(n))) return "--";
-  return "$" + Number(n).toLocaleString(undefined,{
+const $=id=>document.getElementById(id);
+
+function n(v,d=2){
+  const x=Number(v);
+  return Number.isFinite(x)?x.toFixed(d):"--";
+}
+
+function money(v){
+  const x=Number(v);
+  if(!Number.isFinite(x)) return "--";
+  return "$"+x.toLocaleString(undefined,{
     minimumFractionDigits:2,
     maximumFractionDigits:2
   });
 }
 
-function pct(n){
-  if(n==null || !Number.isFinite(Number(n))) return "--";
-  const x=Number(n);
+function pct(v){
+  const x=Number(v);
+  if(!Number.isFinite(x)) return "--";
   return (x>0?"+":"")+x.toFixed(2)+"%";
 }
 
-function paint(el,n){
-  el.classList.remove("green","red","yellow","blue","gray");
-  if(Number(n)>0) el.classList.add("green");
-  else if(Number(n)<0) el.classList.add("red");
-  else el.classList.add("gray");
+function colorPct(el,v){
+  const x=Number(v);
+  el.className="big "+(x>0?"green":x<0?"red":"yellow");
 }
 
-function textColor(el,type){
-  el.classList.remove("green","red","yellow","blue","gray");
-  el.classList.add(type);
+function smallPct(el,v){
+  const x=Number(v);
+  el.className=x>0?"green":x<0?"red":"yellow";
+}
+
+function riskColor(el,value){
+  const s=String(value||"").toUpperCase();
+  el.className="value "+
+    (s==="HIGH"||s==="RISK_OFF"?"red":
+     s==="LOW"||s==="RISK_ON"?"green":"yellow");
 }
 
 async function getJSON(path){
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),10000);
+  const timer=setTimeout(()=>controller.abort(),12000);
 
   try{
     const r=await fetch(WORKER+path,{
@@ -336,337 +343,552 @@ async function getJSON(path){
   }
 }
 
-function decisionEngine(zec,btc,eth,regime){
 
-  let score=50;
-  const reasons=[];
+function unwrapMarket(data){
+  if(!data) return {};
 
-  const z1=Number(zec?.change1h||0);
-  const z24=Number(zec?.change24h||0);
-  const z7=Number(zec?.change7d||0);
+  if(data.market) return data.market;
 
-  const b24=Number(btc?.change24h||0);
-  const e24=Number(eth?.change24h||0);
+  return data;
+}
 
-  if(z24>=5){
-    score+=15;
-    reasons.push("ZEC 24H 动能强劲，趋势明显偏多。");
-  }else if(z24>=2){
-    score+=10;
-    reasons.push("ZEC 24H 动能偏多。");
-  }else if(z24<=-5){
-    score-=15;
+function getAsset(market,symbol){
+  if(!market) return null;
+
+  return market[symbol] ||
+         market[symbol.toLowerCase()] ||
+         null;
+}
+
+
+function buildDecision(){
+
+  const m=unwrapMarket(MARKET);
+
+  const z=getAsset(m,"ZEC");
+  const b=getAsset(m,"BTC");
+  const e=getAsset(m,"ETH");
+
+  if(!z) return;
+
+  const z1=Number(z.change1h)||0;
+  const z24=Number(z.change24h)||0;
+  const z7=Number(z.change7d)||0;
+
+  const b24=b ? Number(b.change24h)||0 : 0;
+  const e24=e ? Number(e.change24h)||0 : 0;
+
+  let trend="NEUTRAL";
+  let setup=50;
+  let entry=55;
+  let chase="MEDIUM";
+  let action="WAIT";
+
+  let reasons=[];
+
+
+  /* -------------------------
+     MARKET TREND
+  ------------------------- */
+
+  if(z24<=-4 && z7<0){
+    trend="BEARISH";
+    setup-=20;
     reasons.push("ZEC 24H 跌幅较大，主要趋势偏空。");
-  }else if(z24<=-2){
-    score-=10;
-    reasons.push("ZEC 24H 动能偏弱。");
+  }
+  else if(z24>=4 && z7>0){
+    trend="BULLISH";
+    setup+=20;
+    reasons.push("ZEC 24H 涨幅较强，主要趋势偏多。");
+  }
+  else if(z24<0){
+    trend="BEARISH";
+    setup-=10;
+    reasons.push("ZEC 24H 表现偏弱。");
+  }
+  else if(z24>0){
+    trend="BULLISH";
+    setup+=10;
+    reasons.push("ZEC 24H 表现偏强。");
   }
 
-  if(z1>1){
-    score+=6;
-    reasons.push("ZEC 最近 1 小时出现短线买盘动能。");
-  }else if(z1<-1){
-    score-=6;
-    reasons.push("ZEC 最近 1 小时仍有短线卖压。");
-  }
-
-  if(z7>5) score+=5;
-  if(z7<-5){
-    score-=5;
+  if(z7<=-5){
+    setup-=8;
     reasons.push("ZEC 7 日表现仍然偏弱。");
   }
 
-  if(b24>2){
-    score+=7;
-    reasons.push("BTC 上涨，为加密市场提供正面环境。");
-  }else if(b24<-2){
-    score-=7;
-    reasons.push("BTC 下跌，整体加密市场承压。");
+  if(z7>=5){
+    setup+=8;
+    reasons.push("ZEC 7 日动能保持偏强。");
   }
 
-  if(e24>2) score+=4;
-  if(e24<-2){
-    score-=4;
-    reasons.push("ETH 同步走弱，Risk-On 条件不足。");
-  }
 
-  score=Math.max(0,Math.min(100,score));
+  /* -------------------------
+     BTC / ETH CONTEXT
+  ------------------------- */
 
-  let trend="NEUTRAL";
-  if(score>=60) trend="BULLISH";
-  if(score<=40) trend="BEARISH";
+  const benchmark=(b24+e24)/2;
+  const relative=z24-benchmark;
 
-  /*
-    ACTION 与 TREND 分开。
-    大幅下跌后不直接追空；
-    大幅上涨后也不直接追多。
-  */
-
-  let action="WAIT";
-  let chaseRisk="MEDIUM";
-  let entryQuality=50;
-
-  const stretchedDown =
-    z24<=-5 || (z24<0 && z7<=-7);
-
-  const stretchedUp =
-    z24>=5 || (z24>0 && z7>=10);
-
-  if(trend==="BEARISH"){
-
-    if(stretchedDown){
-      action="WAIT FOR PULLBACK";
-      chaseRisk="HIGH";
-      entryQuality=32;
-      reasons.push("趋势虽然偏空，但价格已经明显下跌；现在追空风险较高。");
-    }else if(z1>0){
-      action="WATCH SELL SETUP";
-      chaseRisk="MEDIUM";
-      entryQuality=65;
-      reasons.push("偏空趋势中出现反弹，可等待阻力确认，而不是立即追空。");
-    }else{
-      action="WAIT";
-      chaseRisk="MEDIUM";
-      entryQuality=45;
-    }
-  }
-
-  if(trend==="BULLISH"){
-
-    if(stretchedUp){
-      action="WAIT FOR PULLBACK";
-      chaseRisk="HIGH";
-      entryQuality=35;
-      reasons.push("趋势偏多，但短期涨幅已经较大；避免高位追多。");
-    }else if(z1<0){
-      action="WATCH BUY SETUP";
-      chaseRisk="LOW";
-      entryQuality=70;
-      reasons.push("偏多环境出现回调，可等待支撑确认。");
-    }else{
-      action="WATCH BUY SETUP";
-      chaseRisk="MEDIUM";
-      entryQuality=60;
-    }
-  }
-
-  if(trend==="NEUTRAL"){
-    action="WAIT";
-    chaseRisk="MEDIUM";
-    entryQuality=40;
-    reasons.push("方向优势不足，等待更明确的市场结构。");
-  }
-
-  if(regime==="RISK_OFF"){
-    entryQuality=Math.max(20,entryQuality-10);
-    reasons.push("整体市场处于 Risk-Off，降低进场质量评分。");
-  }
-
-  const relative24=z24-((b24+e24)/2);
-
-  let relative="NEUTRAL";
-
-  if(relative24>3) relative="STRONG";
-  if(relative24<-3){
-    relative="WEAK";
+  if(relative<-3){
+    setup-=8;
     reasons.push("ZEC 相对 BTC/ETH 明显偏弱。");
   }
 
-  return{
-    score,
-    trend,
-    action,
-    chaseRisk,
-    entryQuality,
-    reasons:reasons.slice(0,6),
-    relative
-  };
+  if(relative>3){
+    setup+=8;
+    reasons.push("ZEC 相对 BTC/ETH 表现较强。");
+  }
+
+
+  /* -------------------------
+     MACRO FILTER
+  ------------------------- */
+
+  const macroRegime=
+    MACRO?.regime ||
+    MACRO?.macroRegime ||
+    "UNKNOWN";
+
+  const macroRisk=
+    MACRO?.risk ||
+    MACRO?.macroRisk ||
+    "UNKNOWN";
+
+  if(macroRegime==="RISK_OFF"){
+    setup-=10;
+
+    if(trend==="BULLISH"){
+      entry-=12;
+    }
+
+    reasons.push(
+      "宏观环境处于 RISK-OFF，对高波动加密资产形成逆风。"
+    );
+  }
+
+  if(macroRegime==="RISK_ON"){
+    setup+=8;
+
+    if(trend==="BULLISH"){
+      entry+=8;
+    }
+
+    reasons.push(
+      "宏观环境偏 RISK-ON，风险资产环境相对有利。"
+    );
+  }
+
+  if(macroRisk==="HIGH"){
+    entry-=10;
+  }
+
+
+  /* -------------------------
+     CHASE PROTECTION
+  ------------------------- */
+
+  if(trend==="BEARISH" && z24<=-5){
+    chase="HIGH";
+    action="WAIT FOR PULLBACK";
+    entry-=15;
+
+    reasons.push(
+      "趋势虽然偏空，但价格已经明显下跌；现在追空风险较高。"
+    );
+  }
+
+  else if(trend==="BULLISH" && z24>=5){
+    chase="HIGH";
+    action="WAIT FOR PULLBACK";
+    entry-=15;
+
+    reasons.push(
+      "趋势虽然偏多，但短期涨幅已经较大；避免追高。"
+    );
+  }
+
+  else if(trend==="BEARISH"){
+    chase="MEDIUM";
+    action="WAIT FOR CONFIRMATION";
+  }
+
+  else if(trend==="BULLISH"){
+    chase="MEDIUM";
+    action="WAIT FOR CONFIRMATION";
+  }
+
+  else{
+    chase="MEDIUM";
+    action="WAIT";
+  }
+
+
+  setup=Math.max(0,Math.min(100,Math.round(setup)));
+  entry=Math.max(0,Math.min(100,Math.round(entry)));
+
+
+  $("trend").textContent=trend;
+  $("trend").className="big "+
+    (trend==="BULLISH"?"green":
+     trend==="BEARISH"?"red":"yellow");
+
+  $("action").textContent=action;
+  $("action").className="big yellow";
+
+  $("setup").textContent=setup+"/100";
+
+  $("chase").textContent=chase;
+  $("chase").className="big "+
+    (chase==="HIGH"?"red":
+     chase==="LOW"?"green":"yellow");
+
+  $("entryText").textContent=entry+"/100";
+  $("entryBar").style.width=entry+"%";
+
+
+  $("why").innerHTML=
+    reasons.slice(0,6)
+      .map(x=>'<div class="reason">• '+x+'</div>')
+      .join("");
 }
 
-async function refreshAll(){
 
-  $("liveBadge").textContent="UPDATING";
-  $("workerStatus").textContent="CONNECTING";
-  textColor($("workerStatus"),"yellow");
+function renderMarket(data){
+
+  MARKET=data;
+
+  const m=unwrapMarket(data);
+
+  const z=getAsset(m,"ZEC");
+  const b=getAsset(m,"BTC");
+  const e=getAsset(m,"ETH");
+
+  if(!z) throw new Error("ZEC market data unavailable");
+
+
+  $("zecPrice").textContent=money(z.price);
+
+  $("zec1h").textContent=pct(z.change1h);
+  colorPct($("zec1h"),z.change1h);
+
+  $("zec24h").textContent=pct(z.change24h);
+  colorPct($("zec24h"),z.change24h);
+
+  $("zec7d").textContent=pct(z.change7d);
+  colorPct($("zec7d"),z.change7d);
+
+  $("marketSource").textContent=
+    z.source ||
+    data?.dataQuality?.primarySource ||
+    "Multi-Source";
+
+
+  if(b){
+    $("btcPrice").textContent=money(b.price);
+    $("btc24").textContent="24H "+pct(b.change24h);
+    smallPct($("btc24"),b.change24h);
+  }
+
+  if(e){
+    $("ethPrice").textContent=money(e.price);
+    $("eth24").textContent="24H "+pct(e.change24h);
+    smallPct($("eth24"),e.change24h);
+  }
+
+
+  const b24=b?Number(b.change24h)||0:0;
+  const e24=e?Number(e.change24h)||0:0;
+  const z24=Number(z.change24h)||0;
+
+  const avg=(b24+e24)/2;
+
+  let regime="NEUTRAL";
+
+  if(b24>1 && e24>1) regime="RISK-ON";
+  if(b24<-1 && e24<-1) regime="RISK-OFF";
+
+  $("marketRegime").textContent=regime;
+  $("marketRegime").className="big "+
+    (regime==="RISK-ON"?"green":
+     regime==="RISK-OFF"?"red":"yellow");
+
+
+  const rel=z24-avg;
+
+  let rs="NEUTRAL";
+
+  if(rel>3) rs="STRONG";
+  if(rel<-3) rs="WEAK";
+
+  $("relative").textContent=rs;
+  $("relative").className="big "+
+    (rs==="STRONG"?"green":
+     rs==="WEAK"?"red":"yellow");
+
+
+  let marketRisk="MEDIUM";
+
+  if(regime==="RISK-OFF" || Math.abs(z24)>7)
+    marketRisk="HIGH";
+
+  if(regime==="RISK-ON" && Math.abs(z24)<4)
+    marketRisk="LOW";
+
+  $("marketRisk").textContent=marketRisk;
+  riskColor($("marketRisk"),marketRisk);
+
+
+  let volRisk=
+    Math.abs(z24)>=8 ? "HIGH" :
+    Math.abs(z24)>=4 ? "MEDIUM" :
+    "LOW";
+
+  $("volRisk").textContent=volRisk;
+  riskColor($("volRisk"),volRisk);
+
+
+  $("sourceStatus").textContent=
+    z.source || "Multi-Source";
+
+  $("time").textContent=
+    new Date().toLocaleTimeString();
+
+  $("live").textContent="● LIVE";
+  $("live").className="pill green";
+
+  buildDecision();
+}
+
+
+function indicatorName(id,obj){
+
+  if(obj?.name) return obj.name;
+
+  const names={
+    DGS10:"US 10Y Treasury",
+    DFF:"Fed Funds Rate",
+    DTWEXBGS:"US Dollar Index Broad",
+    VIXCLS:"VIX",
+    CPIAUCSL:"CPI",
+    UNRATE:"Unemployment Rate"
+  };
+
+  return names[id]||id;
+}
+
+
+function renderMacro(data){
+
+  MACRO=data;
+
+  const regime=
+    data?.regime ||
+    data?.macroRegime ||
+    "UNKNOWN";
+
+  const risk=
+    data?.risk ||
+    data?.macroRisk ||
+    "UNKNOWN";
+
+
+  $("macroRegime").textContent=regime;
+  $("macroRegime").className="big "+
+    (regime==="RISK_ON"||regime==="RISK-ON"?"green":
+     regime==="RISK_OFF"||regime==="RISK-OFF"?"red":"yellow");
+
+  $("macroRisk").textContent=risk;
+  $("macroRisk").className="big "+
+    (risk==="HIGH"?"red":
+     risk==="LOW"?"green":"yellow");
+
+
+  $("riskMacro").textContent=risk+" · "+regime;
+  riskColor($("riskMacro"),risk);
+
+  $("fredStatus").textContent=
+    data?.ok ? "ACTIVE" : "DEGRADED";
+
+  $("fredStatus").className=
+    "value "+(data?.ok?"green":"yellow");
+
+
+  const indicators=data?.indicators||{};
+
+  const preferred=[
+    "DGS10",
+    "DFF",
+    "DTWEXBGS",
+    "VIXCLS",
+    "CPIAUCSL",
+    "UNRATE"
+  ];
+
+  let html="";
+
+  preferred.forEach(id=>{
+
+    const x=indicators[id];
+
+    if(!x) return;
+
+    let val=n(x.value,2);
+
+    if(x.type==="yield" || x.type==="rate")
+      val+="%";
+
+    html+=`
+      <div class="row">
+        <span>${indicatorName(id,x)}</span>
+        <span class="value">
+          ${val}
+          <span class="muted"
+            style="font-size:12px">
+            ${x.date||""}
+          </span>
+        </span>
+      </div>
+    `;
+  });
+
+  $("macroIndicators").innerHTML=
+    html || '<div class="muted">暂无宏观指标</div>';
+
+
+  const reasons=Array.isArray(data?.reasons)
+    ? data.reasons
+    : [];
+
+  $("macroReasons").innerHTML=
+    reasons.length
+      ? reasons.map(x=>
+          '<div class="reason">• '+x+'</div>'
+        ).join("")
+      : '<div class="muted">暂无宏观风险说明</div>';
+
+  buildDecision();
+}
+
+
+async function loadHealth(){
 
   try{
 
-    const d=await getJSON("/api/market");
+    const d=await getJSON("/health");
 
-    if(!d.ok) throw new Error("Market gateway unavailable");
+    $("workerStatus").textContent=
+      d?.status || "ONLINE";
 
-    const z=d.market?.ZEC;
-    const b=d.market?.BTC;
-    const e=d.market?.ETH;
+    $("workerStatus").className="value green";
 
-    if(!z || !b || !e){
-      throw new Error("Incomplete market data");
+    $("version").textContent=
+      d?.version || "--";
+
+    const fred=
+      d?.modules?.fredMacro;
+
+    if(fred){
+      $("fredStatus").textContent=fred;
+      $("fredStatus").className=
+        "value "+(fred==="ACTIVE"?"green":"yellow");
     }
 
-    $("zecPrice").textContent=money(z.price);
+  }catch(e){
 
-    $("zec1h").textContent=pct(z.change1h);
-    paint($("zec1h"),z.change1h);
+    $("workerStatus").textContent="ERROR";
+    $("workerStatus").className="value red";
 
-    $("zec24h").textContent=pct(z.change24h);
-    paint($("zec24h"),z.change24h);
-
-    $("zec7d").textContent=pct(z.change7d);
-    paint($("zec7d"),z.change7d);
-
-    $("zecSource").textContent=z.source||"--";
-
-    $("btcPrice").textContent=money(b.price);
-    $("btc24").textContent="24H "+pct(b.change24h);
-    paint($("btc24"),b.change24h);
-
-    $("ethPrice").textContent=money(e.price);
-    $("eth24").textContent="24H "+pct(e.change24h);
-    paint($("eth24"),e.change24h);
-
-    $("regime").textContent=d.regime||"NEUTRAL";
-
-    if(d.regime==="RISK_ON")
-      textColor($("regime"),"green");
-    else if(d.regime==="RISK_OFF")
-      textColor($("regime"),"red");
-    else
-      textColor($("regime"),"yellow");
-
-    const ai=decisionEngine(
-      z,b,e,d.regime
-    );
-
-    $("trend").textContent=ai.trend;
-
-    if(ai.trend==="BULLISH")
-      textColor($("trend"),"green");
-    else if(ai.trend==="BEARISH")
-      textColor($("trend"),"red");
-    else
-      textColor($("trend"),"yellow");
-
-    $("action").textContent=ai.action;
-
-    if(ai.action.includes("BUY"))
-      textColor($("action"),"green");
-    else if(ai.action.includes("SELL"))
-      textColor($("action"),"red");
-    else
-      textColor($("action"),"yellow");
-
-    $("setupScore").textContent=ai.score+"/100";
-
-    $("chaseRisk").textContent=ai.chaseRisk;
-
-    if(ai.chaseRisk==="HIGH")
-      textColor($("chaseRisk"),"red");
-    else if(ai.chaseRisk==="LOW")
-      textColor($("chaseRisk"),"green");
-    else
-      textColor($("chaseRisk"),"yellow");
-
-    $("entryQuality").textContent=
-      ai.entryQuality+"/100";
-
-    $("scoreBar").style.width=
-      ai.entryQuality+"%";
-
-    $("relative").textContent=
-      ai.relative;
-
-    if(ai.relative==="STRONG")
-      textColor($("relative"),"green");
-    else if(ai.relative==="WEAK")
-      textColor($("relative"),"red");
-    else
-      textColor($("relative"),"yellow");
-
-    $("reasons").innerHTML=
-      ai.reasons.length
-      ? ai.reasons.map(
-          x=>`<div class="reason">• ${x}</div>`
-        ).join("")
-      : `<div class="small">暂无明显驱动因素</div>`;
-
-    const abs24=Math.abs(Number(z.change24h||0));
-
-    let volRisk="LOW";
-    if(abs24>=4) volRisk="MEDIUM";
-    if(abs24>=7) volRisk="HIGH";
-
-    $("volRisk").textContent=volRisk;
-
-    if(volRisk==="HIGH")
-      textColor($("volRisk"),"red");
-    else if(volRisk==="MEDIUM")
-      textColor($("volRisk"),"yellow");
-    else
-      textColor($("volRisk"),"green");
-
-    let marketRisk="LOW";
-
-    if(d.regime==="RISK_OFF")
-      marketRisk="HIGH";
-    else if(d.regime==="NEUTRAL")
-      marketRisk="MEDIUM";
-
-    $("marketRisk").textContent=
-      marketRisk;
-
-    if(marketRisk==="HIGH")
-      textColor($("marketRisk"),"red");
-    else if(marketRisk==="MEDIUM")
-      textColor($("marketRisk"),"yellow");
-    else
-      textColor($("marketRisk"),"green");
-
-    $("primarySource").textContent=
-      d.dataQuality?.primarySource||"--";
-
-    $("fallback").textContent=
-      d.dataQuality?.fallbackUsed ? "YES" : "NO";
-
-    $("workerVersion").textContent=
-      d.version||"--";
-
-    $("workerStatus").textContent=
-      "ONLINE";
-
-    textColor($("workerStatus"),"green");
-
-    $("liveBadge").innerHTML=
-      '<span class="statusdot"></span>LIVE';
-
-    $("updated").textContent=
-      new Date().toLocaleTimeString();
-
-  }catch(err){
-
-    console.error(err);
-
-    $("liveBadge").textContent="DATA ERROR";
-
-    $("workerStatus").textContent=
-      "ERROR";
-
-    textColor($("workerStatus"),"red");
-
-    $("reasons").innerHTML=
-      `<div class="reason red">
-      数据连接失败：${err.message}
-      </div>`;
   }
 }
 
+
+async function loadMarket(){
+
+  try{
+
+    let d;
+
+    try{
+      d=await getJSON("/api/market");
+    }catch(e){
+      d=await getJSON("/api/global");
+    }
+
+    if(d?.ok===false)
+      throw new Error("Market API returned false");
+
+    renderMarket(d);
+
+  }catch(e){
+
+    $("live").textContent="● DATA ERROR";
+    $("live").className="pill red";
+
+    console.error("Market:",e);
+
+  }
+}
+
+
+async function loadMacro(){
+
+  try{
+
+    const d=await getJSON("/api/macro");
+
+    if(d?.ok===false)
+      throw new Error("Macro API returned false");
+
+    renderMacro(d);
+
+  }catch(e){
+
+    $("macroRegime").textContent="UNAVAILABLE";
+    $("macroRegime").className="big yellow";
+
+    $("macroRisk").textContent="MONITOR";
+    $("macroRisk").className="big yellow";
+
+    $("riskMacro").textContent="MONITOR";
+    $("riskMacro").className="value yellow";
+
+    $("fredStatus").textContent="DEGRADED";
+    $("fredStatus").className="value yellow";
+
+    console.error("Macro:",e);
+
+  }
+}
+
+
+async function refreshAll(){
+
+  $("live").textContent="● REFRESHING";
+
+  await Promise.allSettled([
+    loadHealth(),
+    loadMarket(),
+    loadMacro()
+  ]);
+
+  buildDecision();
+}
+
+
+/* Initial load */
+
 refreshAll();
 
-/*
-  CoinLore 数据不是秒级成交价，
-  因此前端采用 60 秒刷新，
-  避免制造“实时逐秒交易价格”的错误印象。
+
+/* Market refresh: 15 seconds
+   Macro refresh: 5 minutes
+   FRED is not tick data, so no reason to poll every few seconds.
 */
-setInterval(refreshAll,60000);
+
+setInterval(loadMarket,15000);
+setInterval(loadMacro,300000);
+setInterval(loadHealth,300000);
 
 </script>
 
