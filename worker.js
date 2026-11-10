@@ -861,7 +861,68 @@ export default{
    if(url.pathname==="/macro"){
     return reply(await macroData(env));
    }
+if(url.pathname==="/fred-test"){
+  const series="DGS10";
+  const started=Date.now();
 
+  if(!env.FRED_API_KEY){
+    return reply({
+      ok:false,
+      version:VERSION,
+      test:"FRED_SINGLE_SERIES",
+      series,
+      error:"FRED_API_KEY_NOT_CONFIGURED"
+    },500);
+  }
+
+  try{
+    const endpoint=
+      "https://api.stlouisfed.org/fred/series/observations"+
+      "?series_id="+encodeURIComponent(series)+
+      "&api_key="+encodeURIComponent(env.FRED_API_KEY)+
+      "&file_type=json"+
+      "&sort_order=desc"+
+      "&limit=1";
+
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),10000);
+
+    const response=await fetch(endpoint,{
+      method:"GET",
+      headers:{
+        "Accept":"application/json",
+        "User-Agent":"ZEC-AI-Intelligence/4.5.2"
+      },
+      signal:controller.signal
+    });
+
+    clearTimeout(timer);
+
+    const body=await response.text();
+
+    return reply({
+      ok:response.ok,
+      version:VERSION,
+      test:"FRED_SINGLE_SERIES",
+      series,
+      httpStatus:response.status,
+      elapsedMs:Date.now()-started,
+      fredApiKeyConfigured:true,
+      responsePreview:body.slice(0,500)
+    },response.ok?200:502);
+
+  }catch(e){
+    return reply({
+      ok:false,
+      version:VERSION,
+      test:"FRED_SINGLE_SERIES",
+      series,
+      elapsedMs:Date.now()-started,
+      fredApiKeyConfigured:true,
+      error:e?.name==="AbortError"?"TIMEOUT":(e?.message||String(e))
+    },502);
+  }
+}
    if(url.pathname==="/events"){
     return reply(await eventData(env));
    }
