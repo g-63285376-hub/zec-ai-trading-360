@@ -1,44 +1,39 @@
 /*
-  ZEC AI Intelligence Worker V4.4
-  Market: CoinLore primary + Binance fallback
-  Macro: FRED
+  ZEC AI Intelligence Worker V4.5.0
+  --------------------------------------------------
+  Market:
+    CoinLore primary
+    Binance fallback
+
+  Macro:
+    FRED
+
+  V4.5:
+    Economic Event Radar
+    Geopolitical Intelligence
+    Global Risk Fusion
+
   Market research & simulation only.
+  Not investment advice.
 */
 
-const VERSION = "4.4.0";
+const VERSION = "4.5.0";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET,OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-  "Content-Type": "application/json; charset=UTF-8",
-  "Cache-Control": "public, max-age=60"
+  "Content-Type": "application/json;charset=UTF-8",
+  "Cache-Control": "no-store"
 };
 
-const COINLORE = {
+const COINLORE_IDS = {
   ZEC: "134",
   BTC: "90",
   ETH: "80"
 };
 
-const BINANCE_HOSTS = [
-  "https://data-api.binance.vision",
-  "https://api.binance.com",
-  "https://api1.binance.com",
-  "https://api2.binance.com",
-  "https://api3.binance.com"
-];
-
-/*
-  FRED macro series
-  DGS10      = 10-Year Treasury Yield
-  DFF        = Effective Federal Funds Rate
-  DTWEXBGS   = Trade Weighted U.S. Dollar Index: Broad
-  VIXCLS     = CBOE VIX
-  CPIAUCSL   = CPI
-  UNRATE     = Unemployment Rate
-*/
-const MACRO_SERIES = {
+const FRED_SERIES = {
   DGS10: {
     name: "US 10Y Treasury",
     type: "yield"
@@ -53,47 +48,58 @@ const MACRO_SERIES = {
   },
   VIXCLS: {
     name: "VIX",
-    type: "vix"
+    type: "volatility"
   },
   CPIAUCSL: {
     name: "US CPI",
-    type: "cpi"
+    type: "inflation"
   },
   UNRATE: {
     name: "US Unemployment",
-    type: "unemployment"
+    type: "employment"
   }
 };
 
-function response(data, status = 200) {
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
+
+function json(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
     headers: CORS
   });
 }
 
-async function fetchJSON(url, timeout = 8000) {
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+function number(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+async function fetchJSON(url, options = {}, timeout = 9000) {
   const controller = new AbortController();
 
-  const timer = setTimeout(() => {
-    controller.abort();
-  }, timeout);
+  const timer = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const res = await fetch(url, {
-      method: "GET",
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
       headers: {
-        Accept: "application/json",
-        "User-Agent": "ZEC-AI-Intelligence/4.4"
-      },
-      signal: controller.signal
+        "User-Agent": "ZEC-AI-Intelligence/4.5",
+        ...(options.headers || {})
+      }
     });
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
 
-    return await res.json();
+    return await response.json();
 
   } finally {
     clearTimeout(timer);
@@ -101,270 +107,247 @@ async function fetchJSON(url, timeout = 8000) {
 }
 
 /* =========================================================
-   COINLORE MARKET
+   COINLORE
 ========================================================= */
 
-async function coinLoreTicker() {
-  const ids =
-    `${COINLORE.ZEC},${COINLORE.BTC},${COINLORE.ETH}`;
+async function coinLoreCoin(symbol) {
+  const id = COINLORE_IDS[symbol];
+
+  if (!id) throw new Error("Unknown CoinLore symbol");
 
   const url =
-    `https://api.coinlore.net/api/ticker/?id=${ids}`;
+    `https://api.coinlore.net/api/ticker/?id=${id}`;
 
   const data = await fetchJSON(url);
 
-  if (!Array.isArray(data)) {
-    throw new Error("Invalid CoinLore response");
+  if (!Array.isArray(data) || !data[0]) {
+    throw new Error(`CoinLore ${symbol}: invalid response`);
   }
 
-  const result = {};
+  const x = data[0];
 
-  for (const coin of data) {
-    result[coin.symbol] = {
-      symbol: coin.symbol,
-      name: coin.name,
-      price: Number(coin.price_usd),
-      change1h: Number(coin.percent_change_1h),
-      change24h: Number(coin.percent_change_24h),
-      change7d: Number(coin.percent_change_7d),
-      marketCap: Number(coin.market_cap_usd),
-      volume24h: Number(coin.volume24),
-      rank: Number(coin.rank),
-      source: "CoinLore",
-      sourceId: coin.id
-    };
-  }
+  return {
+    symbol,
+    name: x.name || symbol,
 
-  return result;
+    price: number(x.price_usd),
+
+    change1h: number(x.percent_change_1h),
+    change24h: number(x.percent_change_24h),
+    change7d: number(x.percent_change_7d),
+
+    marketCap: number(x.market_cap_usd),
+    volume24h: number(x.volume24),
+
+    rank: number(x.rank),
+
+    source: "CoinLore",
+    sourceId: id
+  };
 }
 
 /* =========================================================
    BINANCE FALLBACK
 ========================================================= */
 
-async function binancePrice(symbol) {
-  const errors = [];
+const BINANCE_HOSTS = [
+  "https://data-api.binance.vision",
+  "https://api.binance.com",
+  "https://api1.binance.com",
+  "https://api2.binance.com",
+  "https://api3.binance.com"
+];
+
+async function binance24(symbol) {
+
+  const pair = `${symbol}USDT`;
+
+  let lastError = "";
 
   for (const host of BINANCE_HOSTS) {
+
     try {
-      const ticker = await fetchJSON(
-        `${host}/api/v3/ticker/24hr?symbol=${symbol}`,
-        5000
-      );
+
+      const url =
+        `${host}/api/v3/ticker/24hr?symbol=${pair}`;
+
+      const x = await fetchJSON(url, {}, 5000);
 
       return {
-        symbol: symbol.replace("USDT", ""),
-        price: Number(ticker.lastPrice),
-        change24h: Number(ticker.priceChangePercent),
-        high24h: Number(ticker.highPrice),
-        low24h: Number(ticker.lowPrice),
-        volume24h: Number(ticker.quoteVolume),
+        symbol,
+        name: symbol,
+
+        price: number(x.lastPrice),
+
+        change1h: null,
+        change24h: number(x.priceChangePercent),
+        change7d: null,
+
+        marketCap: null,
+        volume24h: number(x.quoteVolume),
+
+        rank: null,
+
         source: "Binance",
-        host
+        sourceId: pair
       };
 
     } catch (e) {
-      errors.push(`${host}: ${e.message}`);
+
+      lastError +=
+        `${host}: ${e.message} | `;
     }
   }
 
-  throw new Error(errors.join(" | "));
+  throw new Error(lastError);
+}
+
+async function marketCoin(symbol) {
+
+  try {
+    return await coinLoreCoin(symbol);
+
+  } catch (coinLoreError) {
+
+    const fallback = await binance24(symbol);
+
+    fallback.fallbackReason =
+      coinLoreError.message;
+
+    return fallback;
+  }
 }
 
 /* =========================================================
-   MARKET ENGINE
+   MARKET CONTEXT
 ========================================================= */
 
-async function getMarket() {
-  const errors = [];
+function marketContext(zec, btc, eth) {
 
-  const market = {
-    ZEC: null,
-    BTC: null,
-    ETH: null
-  };
-
-  let primarySource = null;
-  let fallbackUsed = false;
-
-  try {
-    const data = await coinLoreTicker();
-
-    if (data.ZEC) market.ZEC = data.ZEC;
-    if (data.BTC) market.BTC = data.BTC;
-    if (data.ETH) market.ETH = data.ETH;
-
-    if (market.ZEC && market.BTC && market.ETH) {
-      primarySource = "CoinLore";
-    }
-
-  } catch (e) {
-    errors.push(`CoinLore: ${e.message}`);
-  }
-
-  const symbols = {
-    ZEC: "ZECUSDT",
-    BTC: "BTCUSDT",
-    ETH: "ETHUSDT"
-  };
-
-  for (const asset of ["ZEC", "BTC", "ETH"]) {
-    if (!market[asset]) {
-      try {
-        market[asset] =
-          await binancePrice(symbols[asset]);
-
-        fallbackUsed = true;
-
-      } catch (e) {
-        errors.push(
-          `${asset} fallback: ${e.message}`
-        );
-      }
-    }
-  }
-
-  let regimeScore = 0;
+  let score = 0;
   const reasons = [];
 
-  if (market.BTC) {
-    const c = Number(market.BTC.change24h || 0);
+  if (btc?.change24h != null) {
 
-    if (c > 2) {
-      regimeScore += 2;
+    if (btc.change24h >= 2) {
+      score += 2;
       reasons.push("BTC 24H momentum positive");
-    } else if (c < -2) {
-      regimeScore -= 2;
-      reasons.push("BTC 24H momentum negative");
+
+    } else if (btc.change24h > 0) {
+      score += 1;
+
+    } else if (btc.change24h <= -2) {
+      score -= 2;
+      reasons.push("BTC 24H momentum weak");
+
+    } else {
+      score -= 1;
     }
   }
 
-  if (market.ETH) {
-    const c = Number(market.ETH.change24h || 0);
+  if (eth?.change24h != null) {
 
-    if (c > 2) {
-      regimeScore += 1;
-      reasons.push("ETH supports risk-on");
-    } else if (c < -2) {
-      regimeScore -= 1;
-      reasons.push("ETH indicates risk-off pressure");
-    }
+    if (eth.change24h >= 2) score += 2;
+    else if (eth.change24h > 0) score += 1;
+    else if (eth.change24h <= -2) score -= 2;
+    else score -= 1;
   }
 
   let regime = "NEUTRAL";
 
-  if (regimeScore >= 2) regime = "RISK_ON";
-  if (regimeScore <= -2) regime = "RISK_OFF";
+  if (score >= 3) regime = "RISK_ON";
+  if (score <= -3) regime = "RISK_OFF";
+
+  let relativeStrength = "NEUTRAL";
+
+  if (
+    zec?.change24h != null &&
+    btc?.change24h != null &&
+    eth?.change24h != null
+  ) {
+
+    const benchmark =
+      (btc.change24h + eth.change24h) / 2;
+
+    const relative =
+      zec.change24h - benchmark;
+
+    if (relative >= 2)
+      relativeStrength = "STRONG";
+
+    else if (relative <= -2)
+      relativeStrength = "WEAK";
+  }
 
   return {
-    ok: Boolean(
-      market.ZEC &&
-      market.BTC &&
-      market.ETH
-    ),
-
-    version: VERSION,
-    timestamp: new Date().toISOString(),
-
-    market,
     regime,
-    regimeScore,
-    reasons,
-
-    dataQuality: {
-      primarySource,
-      fallbackUsed,
-      ZEC: market.ZEC?.source || null,
-      BTC: market.BTC?.source || null,
-      ETH: market.ETH?.source || null
-    },
-
-    errors
+    score,
+    relativeStrength,
+    reasons
   };
 }
 
 /* =========================================================
-   FRED MACRO ENGINE
+   FRED
 ========================================================= */
 
-function validObservation(obs) {
-  if (!obs) return false;
+async function fredSeries(seriesId, meta, apiKey) {
 
-  const value = Number(obs.value);
-
-  return (
-    obs.value !== "." &&
-    obs.value !== "" &&
-    Number.isFinite(value)
-  );
-}
-
-async function fredSeries(seriesId, apiKey) {
-  if (!apiKey) {
-    throw new Error("FRED_API_KEY secret is missing");
-  }
+  const params =
+    new URLSearchParams({
+      series_id: seriesId,
+      api_key: apiKey,
+      file_type: "json",
+      sort_order: "desc",
+      limit: "10"
+    });
 
   const url =
-    "https://api.stlouisfed.org/fred/series/observations" +
-    `?series_id=${encodeURIComponent(seriesId)}` +
-    `&api_key=${encodeURIComponent(apiKey)}` +
-    "&file_type=json" +
-    "&sort_order=desc" +
-    "&limit=12";
+    `https://api.stlouisfed.org/fred/series/observations?${params}`;
 
-  const data = await fetchJSON(url, 9000);
-
-  if (!Array.isArray(data.observations)) {
-    throw new Error("Invalid FRED response");
-  }
+  const data = await fetchJSON(url);
 
   const valid =
-    data.observations.filter(validObservation);
+    (data.observations || [])
+      .filter(x =>
+        x.value !== "." &&
+        Number.isFinite(Number(x.value))
+      );
 
   if (!valid.length) {
-    throw new Error("No valid observations");
+    throw new Error(`${seriesId}: no observations`);
   }
 
   const latest = valid[0];
   const previous = valid[1] || null;
 
-  const latestValue = Number(latest.value);
+  const value = Number(latest.value);
 
   const previousValue =
     previous ? Number(previous.value) : null;
 
-  let change = null;
-  let changePercent = null;
+  const change =
+    previousValue == null
+      ? null
+      : value - previousValue;
 
-  if (
-    previousValue !== null &&
-    Number.isFinite(previousValue)
-  ) {
-    change =
-      latestValue - previousValue;
-
-    if (previousValue !== 0) {
-      changePercent =
-        (change / previousValue) * 100;
-    }
-  }
+  const changePercent =
+    previousValue
+      ? (change / Math.abs(previousValue)) * 100
+      : null;
 
   return {
     seriesId,
-    name:
-      MACRO_SERIES[seriesId]?.name ||
-      seriesId,
 
-    type:
-      MACRO_SERIES[seriesId]?.type ||
-      "other",
+    name: meta.name,
+    type: meta.type,
 
-    value: latestValue,
+    value,
     date: latest.date,
 
     previousValue,
     previousDate:
-      previous?.date || null,
+      previous ? previous.date : null,
 
     change,
     changePercent,
@@ -373,300 +356,1015 @@ async function fredSeries(seriesId, apiKey) {
   };
 }
 
-async function getMacro(env) {
-  const apiKey = env?.FRED_API_KEY;
+function analyseMacro(indicators) {
 
-  if (!apiKey) {
-    return {
-      ok: false,
-      status: "NO_API_KEY",
-      source: "FRED",
-      timestamp: new Date().toISOString(),
-      indicators: {},
-      errors: [
-        "Cloudflare secret FRED_API_KEY not found"
-      ]
-    };
-  }
-
-  const ids =
-    Object.keys(MACRO_SERIES);
-
-  const settled =
-    await Promise.allSettled(
-      ids.map(id =>
-        fredSeries(id, apiKey)
-      )
-    );
-
-  const indicators = {};
-  const errors = [];
-
-  settled.forEach((result, i) => {
-    const id = ids[i];
-
-    if (result.status === "fulfilled") {
-      indicators[id] = result.value;
-    } else {
-      indicators[id] = null;
-      errors.push(
-        `${id}: ${result.reason?.message || "Unknown error"}`
-      );
-    }
-  });
-
-  const available =
-    Object.values(indicators)
-      .filter(Boolean).length;
-
-  /*
-    Macro risk score:
-    positive score = more risk-off pressure
-    negative score = more risk-on support
-  */
-
-  let riskScore = 0;
+  let score = 0;
   const reasons = [];
 
-  const tenY = indicators.DGS10;
   const dollar = indicators.DTWEXBGS;
   const vix = indicators.VIXCLS;
-  const fed = indicators.DFF;
+  const yield10 = indicators.DGS10;
   const cpi = indicators.CPIAUCSL;
   const unemployment = indicators.UNRATE;
 
-  if (tenY?.change !== null) {
-    if (tenY.change >= 0.08) {
-      riskScore += 2;
-      reasons.push(
-        "US 10Y yield rising: tighter financial conditions"
-      );
-    } else if (tenY.change <= -0.08) {
-      riskScore -= 1;
-      reasons.push(
-        "US 10Y yield falling: financial pressure easing"
-      );
-    }
-  }
+  if (dollar?.change != null) {
 
-  if (dollar?.changePercent !== null) {
-    if (dollar.changePercent >= 0.25) {
-      riskScore += 2;
+    if (dollar.change > 0) {
+      score += 1;
+
       reasons.push(
         "US dollar strengthening: crypto headwind"
       );
-    } else if (dollar.changePercent <= -0.25) {
-      riskScore -= 1;
+
+    } else if (dollar.change < 0) {
+
+      score -= 1;
+
       reasons.push(
-        "US dollar weakening: crypto liquidity support"
+        "US dollar easing: supportive for risk assets"
       );
     }
   }
 
-  if (vix) {
+  if (vix?.value != null) {
+
     if (vix.value >= 30) {
-      riskScore += 3;
+
+      score += 3;
+
       reasons.push(
         "VIX above 30: elevated market stress"
       );
+
     } else if (vix.value >= 20) {
-      riskScore += 1;
+
+      score += 2;
+
       reasons.push(
         "VIX above 20: risk appetite cautious"
       );
-    } else if (vix.value < 17) {
-      riskScore -= 1;
-      reasons.push(
-        "VIX relatively low: calmer risk environment"
-      );
+
+    } else if (vix.value < 15) {
+
+      score -= 1;
     }
   }
 
-  if (fed?.change !== null) {
-    if (fed.change >= 0.10) {
-      riskScore += 1;
+  if (yield10?.change != null) {
+
+    if (yield10.change >= 0.08) {
+
+      score += 2;
+
       reasons.push(
-        "Effective Fed Funds Rate increased"
+        "US 10Y yield rising: pressure on risk assets"
       );
-    } else if (fed.change <= -0.10) {
-      riskScore -= 1;
-      reasons.push(
-        "Effective Fed Funds Rate decreased"
-      );
+
+    } else if (yield10.change <= -0.08) {
+
+      score -= 1;
     }
   }
 
-  /*
-    CPI is monthly, so compare latest two observations
-    only as a directional inflation-pressure input.
-  */
-  if (cpi?.changePercent !== null) {
-    if (cpi.changePercent >= 0.4) {
-      riskScore += 1;
-      reasons.push(
-        "Latest CPI index increase remains elevated"
-      );
-    } else if (cpi.changePercent <= 0.1) {
-      riskScore -= 1;
-      reasons.push(
-        "Latest CPI index increase is relatively soft"
-      );
-    }
+  if (
+    cpi?.changePercent != null &&
+    cpi.changePercent > 0.2
+  ) {
+
+    score += 1;
+
+    reasons.push(
+      "Latest CPI index increase remains elevated"
+    );
   }
 
-  if (unemployment?.change !== null) {
-    if (unemployment.change >= 0.2) {
-      riskScore += 1;
-      reasons.push(
-        "Unemployment rate increased"
-      );
-    }
+  if (
+    unemployment?.change != null &&
+    unemployment.change >= 0.2
+  ) {
+
+    score += 1;
+
+    reasons.push(
+      "Unemployment rate increased"
+    );
   }
 
   let regime = "NEUTRAL";
   let risk = "MEDIUM";
 
-  if (riskScore >= 4) {
+  if (score >= 3) {
     regime = "RISK_OFF";
     risk = "HIGH";
-  } else if (riskScore <= -2) {
+
+  } else if (score <= -2) {
     regime = "RISK_ON";
     risk = "LOW";
   }
 
   return {
-    ok: available >= 3,
+    regime,
+    risk,
+    riskScore: score,
+    reasons
+  };
+}
+
+async function macroData(env) {
+
+  if (!env.FRED_API_KEY) {
+
+    return {
+      ok: false,
+      source: "FRED",
+      error: "FRED_API_KEY not configured"
+    };
+  }
+
+  const indicators = {};
+  const errors = [];
+
+  await Promise.all(
+    Object.entries(FRED_SERIES)
+      .map(async ([id, meta]) => {
+
+        try {
+
+          indicators[id] =
+            await fredSeries(
+              id,
+              meta,
+              env.FRED_API_KEY
+            );
+
+        } catch (e) {
+
+          errors.push(
+            `${id}: ${e.message}`
+          );
+        }
+      })
+  );
+
+  const analysis =
+    analyseMacro(indicators);
+
+  return {
+    ok: Object.keys(indicators).length > 0,
 
     version: VERSION,
+
     source: "FRED",
 
     timestamp:
       new Date().toISOString(),
 
     availableIndicators:
-      available,
+      Object.keys(indicators).length,
 
     requestedIndicators:
-      ids.length,
+      Object.keys(FRED_SERIES).length,
 
-    regime,
-    risk,
-    riskScore,
-
-    reasons,
+    ...analysis,
 
     indicators,
+
     errors
   };
 }
 
 /* =========================================================
-   COMBINED GLOBAL INTELLIGENCE
+   ECONOMIC EVENT RADAR
 ========================================================= */
 
-async function getGlobalIntelligence(env) {
-  const [market, macro] =
-    await Promise.all([
-      getMarket(),
-      getMacro(env)
-    ]);
+const IMPORTANT_RELEASES = [
+  {
+    id: 10,
+    name: "Consumer Price Index",
+    category: "INFLATION",
+    impact: "HIGH"
+  },
+  {
+    id: 50,
+    name: "Employment Situation",
+    category: "LABOR",
+    impact: "HIGH"
+  },
+  {
+    id: 53,
+    name: "Gross Domestic Product",
+    category: "GDP",
+    impact: "HIGH"
+  },
+  {
+    id: 101,
+    name: "FOMC / Federal Reserve",
+    category: "FED",
+    impact: "HIGH"
+  }
+];
 
-  let globalScore = 50;
-  const reasons = [];
+function daysBetween(dateString) {
 
-  if (market.regime === "RISK_ON") {
-    globalScore += 10;
-    reasons.push(
-      "BTC/ETH market environment is risk-on"
-    );
+  const now = new Date();
+
+  const event =
+    new Date(`${dateString}T12:00:00Z`);
+
+  return Math.ceil(
+    (event - now) /
+    (1000 * 60 * 60 * 24)
+  );
+}
+
+async function fredReleaseDates(
+  release,
+  apiKey
+) {
+
+  const today =
+    new Date()
+      .toISOString()
+      .slice(0, 10);
+
+  const future =
+    new Date(
+      Date.now() +
+      45 * 86400000
+    )
+      .toISOString()
+      .slice(0, 10);
+
+  const params =
+    new URLSearchParams({
+      release_id:
+        String(release.id),
+
+      api_key:
+        apiKey,
+
+      file_type:
+        "json",
+
+      realtime_start:
+        today,
+
+      realtime_end:
+        future,
+
+      include_release_dates_with_no_data:
+        "true",
+
+      limit:
+        "20"
+    });
+
+  const url =
+    `https://api.stlouisfed.org/fred/release/dates?${params}`;
+
+  const data =
+    await fetchJSON(url);
+
+  const dates =
+    (data.release_dates || [])
+      .map(x => x.date)
+      .filter(Boolean)
+      .filter(d => d >= today)
+      .sort();
+
+  return dates.map(date => ({
+    releaseId:
+      release.id,
+
+    name:
+      release.name,
+
+    category:
+      release.category,
+
+    impact:
+      release.impact,
+
+    date,
+
+    daysAway:
+      daysBetween(date),
+
+    source:
+      "FRED"
+  }));
+}
+
+function eventRisk(events) {
+
+  if (!events.length) {
+
+    return {
+      risk: "LOW",
+      score: 0,
+      nextEvent: null,
+      reason:
+        "No tracked high-impact release found in current window"
+    };
   }
 
-  if (market.regime === "RISK_OFF") {
-    globalScore -= 10;
-    reasons.push(
-      "BTC/ETH market environment is risk-off"
-    );
-  }
-
-  if (macro.regime === "RISK_ON") {
-    globalScore += 15;
-    reasons.push(
-      "Macro environment supports risk assets"
-    );
-  }
-
-  if (macro.regime === "RISK_OFF") {
-    globalScore -= 15;
-    reasons.push(
-      "Macro environment pressures risk assets"
-    );
-  }
-
-  const zec =
-    market.market.ZEC;
-
-  if (zec) {
-    const z24 =
-      Number(zec.change24h || 0);
-
-    if (z24 > 3) {
-      globalScore += 10;
-      reasons.push(
-        "ZEC 24H momentum positive"
+  const sorted =
+    [...events]
+      .sort(
+        (a, b) =>
+          a.date.localeCompare(b.date)
       );
-    }
 
-    if (z24 < -3) {
-      globalScore -= 10;
-      reasons.push(
-        "ZEC 24H momentum negative"
-      );
-    }
-  }
+  const next =
+    sorted[0];
 
-  globalScore =
-    Math.max(
-      0,
-      Math.min(100, globalScore)
-    );
+  let risk = "LOW";
+  let score = 1;
 
-  let bias = "NEUTRAL";
+  if (next.daysAway <= 1) {
+    risk = "HIGH";
+    score = 4;
 
-  if (globalScore >= 65) {
-    bias = "BULLISH";
-  } else if (globalScore <= 35) {
-    bias = "BEARISH";
+  } else if (next.daysAway <= 3) {
+    risk = "MEDIUM";
+    score = 3;
+
+  } else if (next.daysAway <= 7) {
+    risk = "MEDIUM";
+    score = 2;
   }
 
   return {
-    ok: market.ok,
+    risk,
+    score,
+    nextEvent: next,
 
-    version: VERSION,
+    reason:
+      `${next.name} scheduled ${next.date}`
+  };
+}
+
+async function economicEvents(env) {
+
+  if (!env.FRED_API_KEY) {
+
+    return {
+      ok: false,
+      source: "FRED",
+      error:
+        "FRED_API_KEY not configured"
+    };
+  }
+
+  const events = [];
+  const errors = [];
+
+  await Promise.all(
+    IMPORTANT_RELEASES
+      .map(async release => {
+
+        try {
+
+          const result =
+            await fredReleaseDates(
+              release,
+              env.FRED_API_KEY
+            );
+
+          events.push(...result);
+
+        } catch (e) {
+
+          errors.push(
+            `${release.name}: ${e.message}`
+          );
+        }
+      })
+  );
+
+  const unique = [];
+
+  const seen =
+    new Set();
+
+  for (
+    const event of
+    events.sort(
+      (a, b) =>
+        a.date.localeCompare(b.date)
+    )
+  ) {
+
+    const key =
+      `${event.releaseId}-${event.date}`;
+
+    if (!seen.has(key)) {
+
+      seen.add(key);
+      unique.push(event);
+    }
+  }
+
+  const risk =
+    eventRisk(unique);
+
+  return {
+    ok: true,
+
+    version:
+      VERSION,
+
+    source:
+      "FRED",
 
     timestamp:
       new Date().toISOString(),
 
-    globalScore,
-    bias,
+    horizonDays:
+      45,
 
-    market,
+    ...risk,
+
+    events:
+      unique.slice(0, 20),
+
+    errors,
+
+    note:
+      "FRED release dates are date-level scheduling data. Exact announcement time and market consensus are not fabricated."
+  };
+}
+
+/* =========================================================
+   GDELT GEOPOLITICAL INTELLIGENCE
+========================================================= */
+
+const GEO_QUERIES = [
+  {
+    id: "WAR",
+    label:
+      "War / military escalation",
+
+    query:
+      "(war OR military OR missile OR attack OR invasion OR ceasefire)",
+
+    weight: 3
+  },
+
+  {
+    id: "SANCTIONS",
+    label:
+      "Sanctions",
+
+    query:
+      "(sanctions OR embargo OR export restrictions)",
+
+    weight: 2
+  },
+
+  {
+    id: "ENERGY",
+    label:
+      "Energy supply disruption",
+
+    query:
+      "(oil supply OR gas supply OR pipeline OR OPEC OR energy disruption)",
+
+    weight: 2
+  },
+
+  {
+    id: "TRADE",
+    label:
+      "Trade conflict",
+
+    query:
+      "(tariff OR trade war OR export controls OR trade restrictions)",
+
+    weight: 2
+  },
+
+  {
+    id: "SHIPPING",
+    label:
+      "Shipping / strategic routes",
+
+    query:
+      "(Red Sea OR Strait of Hormuz OR shipping disruption OR Suez Canal)",
+
+    weight: 3
+  }
+];
+
+async function gdeltSearch(item) {
+
+  const params =
+    new URLSearchParams({
+      query:
+        item.query,
+
+      mode:
+        "ArtList",
+
+      maxrecords:
+        "25",
+
+      format:
+        "json",
+
+      sort:
+        "HybridRel",
+
+      timespan:
+        "24h"
+    });
+
+  const url =
+    `https://api.gdeltproject.org/api/v2/doc/doc?${params}`;
+
+  const data =
+    await fetchJSON(
+      url,
+      {},
+      12000
+    );
+
+  const articles =
+    Array.isArray(data.articles)
+      ? data.articles
+      : [];
+
+  return {
+    id:
+      item.id,
+
+    label:
+      item.label,
+
+    weight:
+      item.weight,
+
+    count:
+      articles.length,
+
+    articles:
+      articles
+        .slice(0, 5)
+        .map(a => ({
+          title:
+            a.title || null,
+
+          url:
+            a.url || null,
+
+          domain:
+            a.domain || null,
+
+          language:
+            a.language || null,
+
+          sourceCountry:
+            a.sourcecountry || null,
+
+          seenDate:
+            a.seendate || null
+        }))
+  };
+}
+
+function geopoliticalRisk(groups) {
+
+  let score = 0;
+
+  const reasons = [];
+
+  for (const group of groups) {
+
+    if (!group.count)
+      continue;
+
+    let contribution = 0;
+
+    if (group.count >= 20)
+      contribution =
+        group.weight;
+
+    else if (group.count >= 8)
+      contribution =
+        Math.max(
+          1,
+          group.weight - 1
+        );
+
+    else if (group.count >= 3)
+      contribution = 1;
+
+    score += contribution;
+
+    if (contribution > 0) {
+
+      reasons.push(
+        `${group.label}: ${group.count} recent monitored articles`
+      );
+    }
+  }
+
+  /*
+    Important:
+    Article volume is NOT a trading signal.
+
+    Score only represents
+    monitoring intensity.
+  */
+
+  score =
+    clamp(score, 0, 10);
+
+  let risk = "LOW";
+
+  if (score >= 7)
+    risk = "HIGH";
+
+  else if (score >= 3)
+    risk = "MEDIUM";
+
+  return {
+    risk,
+    score,
+    reasons
+  };
+}
+
+async function geopoliticalData() {
+
+  const groups = [];
+  const errors = [];
+
+  await Promise.all(
+    GEO_QUERIES
+      .map(async item => {
+
+        try {
+
+          groups.push(
+            await gdeltSearch(item)
+          );
+
+        } catch (e) {
+
+          errors.push(
+            `${item.id}: ${e.message}`
+          );
+        }
+      })
+  );
+
+  const analysis =
+    geopoliticalRisk(groups);
+
+  const headlines =
+    groups
+      .flatMap(
+        g =>
+          g.articles.map(a => ({
+            category:
+              g.id,
+
+            categoryName:
+              g.label,
+
+            ...a
+          }))
+      )
+      .filter(x => x.title)
+      .slice(0, 15);
+
+  return {
+    ok:
+      groups.length > 0,
+
+    version:
+      VERSION,
+
+    source:
+      "GDELT",
+
+    timestamp:
+      new Date().toISOString(),
+
+    window:
+      "24h",
+
+    ...analysis,
+
+    groups,
+
+    headlines,
+
+    errors,
+
+    methodology:
+      "Headline volume is used only as geopolitical monitoring context. It does not independently create BUY or SELL signals."
+  };
+}
+
+/* =========================================================
+   GLOBAL RISK FUSION
+========================================================= */
+
+function globalRiskFusion(
+  market,
+  macro,
+  events,
+  geo
+) {
+
+  let riskScore = 0;
+  const reasons = [];
+
+  if (
+    market?.regime ===
+    "RISK_OFF"
+  ) {
+
+    riskScore += 2;
+
+    reasons.push(
+      "Crypto market environment risk-off"
+    );
+
+  } else if (
+    market?.regime ===
+    "RISK_ON"
+  ) {
+
+    riskScore -= 1;
+  }
+
+  if (
+    macro?.regime ===
+    "RISK_OFF"
+  ) {
+
+    riskScore += 3;
+
+    reasons.push(
+      "Macro environment risk-off"
+    );
+
+  } else if (
+    macro?.regime ===
+    "RISK_ON"
+  ) {
+
+    riskScore -= 1;
+  }
+
+  if (
+    events?.risk ===
+    "HIGH"
+  ) {
+
+    riskScore += 3;
+
+    reasons.push(
+      "High-impact economic event approaching"
+    );
+
+  } else if (
+    events?.risk ===
+    "MEDIUM"
+  ) {
+
+    riskScore += 1;
+  }
+
+  if (
+    geo?.risk ===
+    "HIGH"
+  ) {
+
+    riskScore += 2;
+
+    reasons.push(
+      "Elevated geopolitical monitoring risk"
+    );
+
+  } else if (
+    geo?.risk ===
+    "MEDIUM"
+  ) {
+
+    riskScore += 1;
+  }
+
+  riskScore =
+    clamp(
+      riskScore,
+      0,
+      10
+    );
+
+  let risk = "LOW";
+  let posture = "NORMAL";
+
+  if (riskScore >= 7) {
+
+    risk = "HIGH";
+    posture =
+      "DEFENSIVE";
+
+  } else if (
+    riskScore >= 4
+  ) {
+
+    risk = "MEDIUM";
+    posture =
+      "CAUTIOUS";
+  }
+
+  /*
+    Event protection:
+    Do not pretend we know exact
+    intraday release time if FRED
+    only gives the date.
+  */
+
+  let eventProtection =
+    "NORMAL";
+
+  if (
+    events?.nextEvent?.daysAway === 0
+  ) {
+
+    eventProtection =
+      "EVENT DAY";
+
+  } else if (
+    events?.nextEvent?.daysAway === 1
+  ) {
+
+    eventProtection =
+      "EVENT TOMORROW";
+  }
+
+  return {
+    risk,
+    riskScore,
+    posture,
+    eventProtection,
+    reasons
+  };
+}
+
+/* =========================================================
+   COMPLETE INTELLIGENCE
+========================================================= */
+
+async function intelligence(env) {
+
+  const errors = [];
+
+  let ZEC = null;
+  let BTC = null;
+  let ETH = null;
+
+  const marketResults =
+    await Promise.allSettled([
+      marketCoin("ZEC"),
+      marketCoin("BTC"),
+      marketCoin("ETH")
+    ]);
+
+  if (
+    marketResults[0].status ===
+    "fulfilled"
+  )
+    ZEC =
+      marketResults[0].value;
+
+  else
+    errors.push(
+      `ZEC: ${marketResults[0].reason}`
+    );
+
+  if (
+    marketResults[1].status ===
+    "fulfilled"
+  )
+    BTC =
+      marketResults[1].value;
+
+  else
+    errors.push(
+      `BTC: ${marketResults[1].reason}`
+    );
+
+  if (
+    marketResults[2].status ===
+    "fulfilled"
+  )
+    ETH =
+      marketResults[2].value;
+
+  else
+    errors.push(
+      `ETH: ${marketResults[2].reason}`
+    );
+
+  const market =
+    marketContext(
+      ZEC,
+      BTC,
+      ETH
+    );
+
+  const [
+    macroResult,
+    eventResult,
+    geoResult
+  ] =
+    await Promise.allSettled([
+      macroData(env),
+      economicEvents(env),
+      geopoliticalData()
+    ]);
+
+  const macro =
+    macroResult.status ===
+    "fulfilled"
+      ? macroResult.value
+      : {
+          ok: false,
+          error:
+            String(
+              macroResult.reason
+            )
+        };
+
+  const events =
+    eventResult.status ===
+    "fulfilled"
+      ? eventResult.value
+      : {
+          ok: false,
+          error:
+            String(
+              eventResult.reason
+            )
+        };
+
+  const geopolitical =
+    geoResult.status ===
+    "fulfilled"
+      ? geoResult.value
+      : {
+          ok: false,
+          error:
+            String(
+              geoResult.reason
+            )
+        };
+
+  const globalRisk =
+    globalRiskFusion(
+      market,
+      macro,
+      events,
+      geopolitical
+    );
+
+  return {
+    ok:
+      Boolean(ZEC),
+
+    service:
+      "ZEC AI Intelligence",
+
+    version:
+      VERSION,
+
+    timestamp:
+      new Date().toISOString(),
+
+    market: {
+      ZEC,
+      BTC,
+      ETH
+    },
+
+    marketContext:
+      market,
+
     macro,
 
-    geopolitical: {
-      status: "MONITOR",
-      engine:
-        "NEXT_STAGE",
-      note:
-        "Verified news intelligence will be added separately; no fabricated geopolitical score."
-    },
+    events,
 
-    eventRisk: {
-      status: "MONITOR",
-      engine:
-        "NEXT_STAGE"
-    },
+    geopolitical,
 
-    reasons,
+    globalRisk,
+
+    errors,
 
     disclaimer:
       "Market research and simulation only. Not investment advice."
@@ -674,228 +1372,28 @@ async function getGlobalIntelligence(env) {
 }
 
 /* =========================================================
-   EXISTING INTELLIGENCE
+   STATUS
 ========================================================= */
 
-async function getIntelligence(env) {
-  const data =
-    await getMarket();
+function status(env) {
 
-  const macro =
-    await getMacro(env);
-
-  const zec =
-    data.market.ZEC;
-
-  const btc =
-    data.market.BTC;
-
-  const eth =
-    data.market.ETH;
-
-  let score = 50;
-
-  const reasons = [];
-
-  if (zec) {
-    const z24 =
-      Number(zec.change24h || 0);
-
-    const z1 =
-      Number(zec.change1h || 0);
-
-    if (z24 > 3) {
-      score += 10;
-      reasons.push(
-        "ZEC 24H momentum bullish"
-      );
-    } else if (z24 < -3) {
-      score -= 10;
-      reasons.push(
-        "ZEC 24H momentum bearish"
-      );
-    }
-
-    if (z1 > 1) {
-      score += 5;
-      reasons.push(
-        "ZEC short-term momentum positive"
-      );
-    } else if (z1 < -1) {
-      score -= 5;
-      reasons.push(
-        "ZEC short-term momentum negative"
-      );
-    }
-  }
-
-  if (btc) {
-    const c =
-      Number(btc.change24h || 0);
-
-    if (c > 2) {
-      score += 10;
-      reasons.push(
-        "BTC context positive"
-      );
-    } else if (c < -2) {
-      score -= 10;
-      reasons.push(
-        "BTC context negative"
-      );
-    }
-  }
-
-  if (eth) {
-    const c =
-      Number(eth.change24h || 0);
-
-    if (c > 2) {
-      score += 5;
-      reasons.push(
-        "ETH confirms risk-on"
-      );
-    } else if (c < -2) {
-      score -= 5;
-      reasons.push(
-        "ETH confirms risk-off"
-      );
-    }
-  }
-
-  if (macro.regime === "RISK_ON") {
-    score += 10;
-    reasons.push(
-      "Macro engine supports risk assets"
-    );
-  }
-
-  if (macro.regime === "RISK_OFF") {
-    score -= 10;
-    reasons.push(
-      "Macro engine signals risk-off pressure"
-    );
-  }
-
-  score =
-    Math.max(
-      0,
-      Math.min(100, score)
-    );
-
-  let bias = "NEUTRAL";
-
-  if (score >= 65) {
-    bias = "BULLISH";
-  }
-
-  if (score <= 35) {
-    bias = "BEARISH";
-  }
-
-  return {
-    ok: data.ok,
-
-    version: VERSION,
-
-    timestamp:
-      new Date().toISOString(),
-
-    market:
-      data.market,
-
-    marketRegime:
-      data.regime,
-
-    macro,
-
-    intelligence: {
-      compositeScore: score,
-      bias,
-      reasons
-    },
-
-    dataQuality:
-      data.dataQuality,
-
-    riskEngine: {
-      technical: "MONITOR",
-      market: data.regime,
-      macro:
-        macro.ok
-          ? macro.risk
-          : "DATA_UNAVAILABLE",
-      geopolitical:
-        "MONITOR",
-      eventRisk:
-        "MONITOR"
-    },
-
-    disclaimer:
-      "Market research and simulation only. Not investment advice.",
-
-    errors:
-      data.errors
-  };
-}
-
-/* =========================================================
-   ZEC
-========================================================= */
-
-async function getZEC() {
-  const market =
-    await getMarket();
-
-  return {
-    ok:
-      Boolean(market.market.ZEC),
-
-    version: VERSION,
-
-    timestamp:
-      market.timestamp,
-
-    ZEC:
-      market.market.ZEC,
-
-    marketRegime:
-      market.regime,
-
-    BTC:
-      market.market.BTC,
-
-    ETH:
-      market.market.ETH,
-
-    source:
-      market.market.ZEC?.source ||
-      null,
-
-    errors:
-      market.errors
-  };
-}
-
-/* =========================================================
-   HEALTH
-========================================================= */
-
-function health(env) {
   return {
     ok: true,
 
     service:
       "ZEC AI Intelligence",
 
-    version: VERSION,
+    version:
+      VERSION,
 
-    status: "ONLINE",
+    status:
+      "ONLINE",
 
     architecture:
       "Cloudflare Worker Multi-Source Intelligence Gateway",
 
     modules: {
+
       coinLoreMarket:
         "ACTIVE",
 
@@ -909,22 +1407,26 @@ function health(env) {
         "ACTIVE",
 
       fredMacro:
-        env?.FRED_API_KEY
+        env.FRED_API_KEY
           ? "ACTIVE"
-          : "NO_API_KEY",
+          : "NOT CONFIGURED",
 
-      globalRiskEngine:
-        "ACTIVE",
+      economicEventRadar:
+        env.FRED_API_KEY
+          ? "ACTIVE"
+          : "NOT CONFIGURED",
 
       geopoliticalEngine:
-        "NEXT",
+        "ACTIVE",
 
-      eventRiskEngine:
-        "NEXT"
+      globalRiskFusion:
+        "ACTIVE"
     },
 
     fredSecretConfigured:
-      Boolean(env?.FRED_API_KEY),
+      Boolean(
+        env.FRED_API_KEY
+      ),
 
     timestamp:
       new Date().toISOString(),
@@ -939,81 +1441,146 @@ function health(env) {
 ========================================================= */
 
 export default {
-  async fetch(request, env) {
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: CORS
-      });
+  async fetch(
+    request,
+    env,
+    ctx
+  ) {
+
+    if (
+      request.method ===
+      "OPTIONS"
+    ) {
+
+      return new Response(
+        null,
+        {
+          status: 204,
+          headers: CORS
+        }
+      );
     }
 
     const url =
-      new URL(request.url);
-
-    const path =
-      url.pathname;
+      new URL(
+        request.url
+      );
 
     try {
 
       if (
-        path === "/" ||
-        path === "/health"
+        url.pathname === "/" ||
+        url.pathname ===
+        "/status"
       ) {
-        return response(
-          health(env)
-        );
-      }
 
-      if (path === "/api/market") {
-        return response(
-          await getMarket()
-        );
-      }
-
-      if (path === "/api/zec") {
-        return response(
-          await getZEC()
-        );
-      }
-
-      if (path === "/api/macro") {
-        return response(
-          await getMacro(env)
+        return json(
+          status(env)
         );
       }
 
       if (
-        path === "/api/intelligence"
+        url.pathname ===
+        "/market"
       ) {
-        return response(
-          await getIntelligence(env)
+
+        const [
+          ZEC,
+          BTC,
+          ETH
+        ] =
+          await Promise.all([
+            marketCoin("ZEC"),
+            marketCoin("BTC"),
+            marketCoin("ETH")
+          ]);
+
+        return json({
+          ok: true,
+
+          version:
+            VERSION,
+
+          timestamp:
+            new Date()
+              .toISOString(),
+
+          market: {
+            ZEC,
+            BTC,
+            ETH
+          },
+
+          context:
+            marketContext(
+              ZEC,
+              BTC,
+              ETH
+            )
+        });
+      }
+
+      if (
+        url.pathname ===
+        "/macro"
+      ) {
+
+        return json(
+          await macroData(env)
         );
       }
 
       if (
-        path === "/api/global"
+        url.pathname ===
+        "/events"
       ) {
-        return response(
-          await getGlobalIntelligence(env)
+
+        return json(
+          await economicEvents(
+            env
+          )
         );
       }
 
-      return response(
+      if (
+        url.pathname ===
+        "/geopolitical"
+      ) {
+
+        return json(
+          await geopoliticalData()
+        );
+      }
+
+      if (
+        url.pathname ===
+        "/intelligence"
+      ) {
+
+        return json(
+          await intelligence(env)
+        );
+      }
+
+      return json(
         {
           ok: false,
-          version: VERSION,
-          error:
-            "Endpoint not found",
 
-          availableEndpoints: [
+          version:
+            VERSION,
+
+          error:
+            "Route not found",
+
+          availableRoutes: [
             "/",
-            "/health",
-            "/api/market",
-            "/api/zec",
-            "/api/macro",
-            "/api/intelligence",
-            "/api/global"
+            "/status",
+            "/market",
+            "/macro",
+            "/events",
+            "/geopolitical",
+            "/intelligence"
           ]
         },
         404
@@ -1021,14 +1588,20 @@ export default {
 
     } catch (e) {
 
-      return response(
+      return json(
         {
           ok: false,
-          version: VERSION,
-          error:
-            e.message,
+
+          version:
+            VERSION,
+
           timestamp:
-            new Date().toISOString()
+            new Date()
+              .toISOString(),
+
+          error:
+            e?.message ||
+            String(e)
         },
         500
       );
