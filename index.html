@@ -3,893 +3,942 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#07111f">
-<title>ZEC AI Trading 360 V4.4</title>
+<meta name="theme-color" content="#071018">
+<title>ZEC AI Trading 360 · V4.5.3</title>
 
 <style>
+:root{
+  --bg:#050b11;
+  --panel:#0c1620;
+  --panel2:#101d28;
+  --line:#1d3443;
+  --text:#edf7ff;
+  --muted:#8fa7b7;
+  --green:#42e69d;
+  --red:#ff6b78;
+  --yellow:#ffd166;
+  --blue:#56b6ff;
+  --purple:#b89cff;
+}
+
 *{box-sizing:border-box}
+
 body{
-  margin:0;background:#07111f;color:#fff;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif
+  margin:0;
+  background:
+    radial-gradient(circle at top,#102331 0,#071018 30%,#050b11 70%);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
 }
-header{
-  padding:24px 18px;background:#101d38;
-  border-bottom:1px solid #30415e
+
+.app{
+  width:min(100%,760px);
+  margin:auto;
+  padding:18px 14px 42px;
 }
-.logo{font-size:28px;font-weight:900;color:#67a2ff}
-.sub{color:#9aaac5;margin-top:6px;line-height:1.4}
-main{max-width:800px;margin:auto;padding:14px}
+
+.header{
+  padding:8px 4px 18px;
+}
+
+.brand{
+  font-size:12px;
+  letter-spacing:2px;
+  color:var(--green);
+  font-weight:800;
+}
+
+h1{
+  margin:7px 0 4px;
+  font-size:28px;
+}
+
+.version{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.live{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  margin-top:10px;
+  padding:6px 10px;
+  border:1px solid #20533f;
+  border-radius:20px;
+  color:var(--green);
+  font-size:12px;
+}
+
+.dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 10px var(--green);
+}
+
 .card{
-  background:#121f39;border:1px solid #30415e;
-  border-radius:18px;padding:18px;margin:14px 0
+  background:linear-gradient(145deg,rgba(16,29,40,.96),rgba(8,18,26,.96));
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:13px;
+  box-shadow:0 8px 30px rgba(0,0,0,.22);
 }
-h2{margin:0 0 16px;font-size:21px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.box{background:#0b162c;border-radius:15px;padding:15px}
-.label{color:#98a8c2;font-size:14px;font-weight:700}
-.big{font-size:29px;font-weight:900;margin-top:7px}
-.price{font-size:42px;font-weight:900}
-.green{color:#65db8d}
-.red{color:#ff737d}
-.yellow{color:#ffd166}
-.blue{color:#67a2ff}
-.muted{color:#98a8c2}
+
+.title{
+  color:var(--muted);
+  font-size:11px;
+  letter-spacing:1.4px;
+  font-weight:800;
+  text-transform:uppercase;
+  margin-bottom:11px;
+}
+
+.price{
+  font-size:38px;
+  font-weight:800;
+  letter-spacing:-1px;
+}
+
+.grid3{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:14px;
+}
+
+.metric{
+  background:#09131c;
+  border:1px solid #172c3a;
+  border-radius:12px;
+  padding:10px;
+}
+
+.metric span{
+  display:block;
+  font-size:10px;
+  color:var(--muted);
+  margin-bottom:5px;
+}
+
+.metric b{font-size:14px}
+
+.pos{color:var(--green)!important}
+.neg{color:var(--red)!important}
+.warn{color:var(--yellow)!important}
+.info{color:var(--blue)!important}
+.purple{color:var(--purple)!important}
+
+.decision{
+  text-align:center;
+  padding:5px 0;
+}
+
+.decisionLabel{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.action{
+  font-size:25px;
+  font-weight:900;
+  margin:8px 0;
+}
+
+.sub{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
 .row{
-  display:flex;justify-content:space-between;
-  gap:10px;margin:12px 0;align-items:center
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  padding:9px 0;
+  border-bottom:1px solid rgba(53,79,94,.35);
 }
-.value{font-weight:900;text-align:right}
+
+.row:last-child{border-bottom:0}
+
+.label{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.value{
+  text-align:right;
+  font-weight:750;
+  font-size:13px;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:8px;
+  background:#122532;
+  border:1px solid #234456;
+  font-size:11px;
+  font-weight:800;
+}
+
+.progress{
+  height:8px;
+  background:#071019;
+  border-radius:8px;
+  overflow:hidden;
+  margin-top:8px;
+}
+
 .bar{
-  height:10px;background:#2a3b58;border-radius:8px;
-  overflow:hidden;margin-top:8px
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#35a7ff,#42e69d);
+  transition:width .5s ease;
 }
-.fill{
-  height:100%;width:50%;
-  background:linear-gradient(90deg,#ff737d,#ffd166,#65db8d)
-}
+
 .reason{
-  padding:11px 0;border-bottom:1px solid #293a57;
-  line-height:1.45
+  background:#09141d;
+  border-left:3px solid #34566b;
+  padding:9px 10px;
+  margin-top:7px;
+  border-radius:7px;
+  font-size:12px;
+  line-height:1.45;
 }
-.reason:last-child{border-bottom:0}
-.pill{
-  display:inline-block;padding:6px 11px;border-radius:20px;
-  background:#243653;font-weight:800;font-size:13px
+
+.headline{
+  padding:9px 0;
+  border-bottom:1px solid rgba(53,79,94,.35);
+  font-size:12px;
+  line-height:1.45;
 }
+
+.headline:last-child{border:0}
+
 button{
-  border:0;border-radius:12px;background:#3777f6;
-  color:white;padding:12px 18px;font-size:15px;font-weight:800
+  width:100%;
+  border:0;
+  padding:14px;
+  border-radius:13px;
+  background:linear-gradient(90deg,#1677ff,#24a8ff);
+  color:white;
+  font-size:15px;
+  font-weight:800;
+  cursor:pointer;
+  margin-top:4px;
 }
-footer{
-  text-align:center;color:#8191aa;
-  padding:35px 20px 50px;font-size:13px;line-height:1.5
+
+button:disabled{opacity:.55}
+
+.small{
+  font-size:10px;
+  color:#6f8796;
+  text-align:center;
+  margin-top:16px;
+  line-height:1.6;
 }
-@media(max-width:480px){
-  .price{font-size:38px}
-  .big{font-size:25px}
+
+.errorBox{
+  border:1px solid #6b3038;
+  background:#211015;
+  padding:12px;
+  border-radius:12px;
+  color:#ff9ba4;
+  font-size:12px;
+  display:none;
+  margin-bottom:13px;
+}
+
+@media(max-width:420px){
+  h1{font-size:25px}
+  .price{font-size:34px}
 }
 </style>
 </head>
 
 <body>
+<div class="app">
 
-<header>
-  <div class="logo">ZEC AI Trading 360</div>
+<div class="header">
+  <div class="brand">ZEC AI INTELLIGENCE</div>
+  <h1>ZEC Trading 360</h1>
+  <div class="version">Market Research Dashboard · V4.5.3</div>
+  <div class="live">
+    <span class="dot"></span>
+    <span id="workerStatus">Connecting...</span>
+  </div>
+</div>
+
+<div id="errorBox" class="errorBox"></div>
+
+<div class="card">
+  <div class="title">ZEC Market</div>
+  <div id="zecPrice" class="price">--</div>
+
+  <div class="grid3">
+    <div class="metric">
+      <span>1 HOUR</span>
+      <b id="zec1h">--</b>
+    </div>
+    <div class="metric">
+      <span>24 HOURS</span>
+      <b id="zec24h">--</b>
+    </div>
+    <div class="metric">
+      <span>7 DAYS</span>
+      <b id="zec7d">--</b>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="label">Market Source</div>
+    <div id="marketSource" class="value">--</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="title">AI Market Decision Engine</div>
+
+  <div class="decision">
+    <div class="decisionLabel">CURRENT ACTION</div>
+    <div id="action" class="action warn">WAIT FOR CONFIRMATION</div>
+    <div id="actionReason" class="sub">
+      Waiting for sufficient market intelligence.
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="label">Trend</div>
+    <div id="trend" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Setup Score</div>
+    <div id="setupScore" class="value">--</div>
+  </div>
+  <div class="progress"><div id="setupBar" class="bar"></div></div>
+
+  <div class="row">
+    <div class="label">Entry Quality</div>
+    <div id="entryQuality" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Chase Risk</div>
+    <div id="chaseRisk" class="value">--</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="title">Why?</div>
+  <div id="why"></div>
+</div>
+
+<div class="card">
+  <div class="title">BTC / ETH Environment</div>
+
+  <div class="row">
+    <div class="label">BTC</div>
+    <div id="btc" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">ETH</div>
+    <div id="eth" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Market Regime</div>
+    <div id="marketRegime" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">ZEC Relative Strength</div>
+    <div id="relativeStrength" class="value">--</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="title">Global Macro Intelligence</div>
+
+  <div class="row">
+    <div class="label">Macro Regime</div>
+    <div id="macroRegime" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Macro Risk</div>
+    <div id="macroRisk" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">FRED Status</div>
+    <div id="fredStatus" class="value">--</div>
+  </div>
+
+  <div id="macroReasons"></div>
+</div>
+
+<div class="card">
+  <div class="title">Economic Event Radar</div>
+
+  <div class="row">
+    <div class="label">Event Risk</div>
+    <div id="eventRisk" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Next Event</div>
+    <div id="nextEvent" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Date</div>
+    <div id="eventDate" class="value">--</div>
+  </div>
+
   <div class="sub">
-    V4.4 · Global Macro Intelligence · Market Research & Simulation
-  </div>
-</header>
-
-<main>
-
-<div class="card">
-  <div class="row">
-    <div>
-      <div class="label">ZEC 市场基准价格</div>
-      <div id="zecPrice" class="price">--</div>
-    </div>
-    <div style="text-align:right">
-      <span id="live" class="pill">● CONNECTING</span>
-      <div id="time" class="muted" style="margin-top:8px">--</div>
-    </div>
-  </div>
-
-  <div class="grid">
-    <div class="box">
-      <div class="label">1H</div>
-      <div id="zec1h" class="big">--</div>
-    </div>
-    <div class="box">
-      <div class="label">24H</div>
-      <div id="zec24h" class="big">--</div>
-    </div>
-    <div class="box">
-      <div class="label">7D</div>
-      <div id="zec7d" class="big">--</div>
-    </div>
-    <div class="box">
-      <div class="label">数据源</div>
-      <div id="marketSource" class="big" style="font-size:20px">--</div>
-    </div>
+    Event dates are monitoring context only. They do not represent a guaranteed market reaction.
   </div>
 </div>
 
-
 <div class="card">
-  <h2>AI Market Decision Engine</h2>
+  <div class="title">Geopolitical Intelligence</div>
 
-  <div class="grid">
-    <div class="box">
-      <div class="label">TREND 趋势</div>
-      <div id="trend" class="big">--</div>
-    </div>
-
-    <div class="box">
-      <div class="label">ACTION 行动</div>
-      <div id="action" class="big">--</div>
-    </div>
-
-    <div class="box">
-      <div class="label">SETUP SCORE</div>
-      <div id="setup" class="big">--</div>
-    </div>
-
-    <div class="box">
-      <div class="label">CHASE RISK</div>
-      <div id="chase" class="big">--</div>
-    </div>
+  <div class="row">
+    <div class="label">Source</div>
+    <div id="geoSource" class="value">--</div>
   </div>
 
-  <div style="margin-top:18px">
-    <div class="row">
-      <span class="label">Entry Quality 入场质量</span>
-      <span id="entryText" class="value">--</span>
-    </div>
-    <div class="bar"><div id="entryBar" class="fill"></div></div>
+  <div class="row">
+    <div class="label">Data Status</div>
+    <div id="geoStatus" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Geopolitical Risk</div>
+    <div id="geoRisk" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Confidence</div>
+    <div id="geoConfidence" class="value">--</div>
+  </div>
+
+  <div id="geoMessage" class="sub"></div>
+  <div id="headlines"></div>
+</div>
+
+<div class="card">
+  <div class="title">Global Risk Fusion</div>
+
+  <div class="row">
+    <div class="label">Global Risk</div>
+    <div id="globalRisk" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Risk Score</div>
+    <div id="globalScore" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Posture</div>
+    <div id="posture" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Decision Reliability</div>
+    <div id="reliability" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Signal Permission</div>
+    <div id="signalPermission" class="value">--</div>
+  </div>
+
+  <div id="globalReasons"></div>
+</div>
+
+<div class="card">
+  <div class="title">Data Quality Monitor</div>
+
+  <div class="row">
+    <div class="label">Overall</div>
+    <div id="qualityStatus" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Confidence</div>
+    <div id="qualityConfidence" class="value">--</div>
+  </div>
+
+  <div class="progress">
+    <div id="qualityBar" class="bar"></div>
+  </div>
+
+  <div class="row">
+    <div class="label">Market</div>
+    <div id="qMarket" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Macro</div>
+    <div id="qMacro" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Events</div>
+    <div id="qEvents" class="value">--</div>
+  </div>
+
+  <div class="row">
+    <div class="label">Geopolitical</div>
+    <div id="qGeo" class="value">--</div>
   </div>
 </div>
 
+<button id="refreshBtn" onclick="loadData()">Refresh Intelligence</button>
 
-<div class="card">
-  <h2>为什么？ · Why?</h2>
-  <div id="why">
-    <div class="muted">正在建立市场与宏观判断...</div>
-  </div>
+<div id="updated" class="small">Waiting for data...</div>
+
+<div class="small">
+  ZEC AI Trading 360 · V4.5.3<br>
+  Market research and simulation only.<br>
+  仅用于市场研究及模拟分析，不构成投资建议。
 </div>
 
-
-<div class="card">
-  <h2>BTC / ETH 市场环境</h2>
-
-  <div class="grid">
-    <div class="box">
-      <div class="label">BTC</div>
-      <div id="btcPrice" class="big">--</div>
-      <div id="btc24">--</div>
-    </div>
-
-    <div class="box">
-      <div class="label">ETH</div>
-      <div id="ethPrice" class="big">--</div>
-      <div id="eth24">--</div>
-    </div>
-
-    <div class="box">
-      <div class="label">MARKET REGIME</div>
-      <div id="marketRegime" class="big">--</div>
-    </div>
-
-    <div class="box">
-      <div class="label">ZEC RELATIVE STRENGTH</div>
-      <div id="relative" class="big">--</div>
-    </div>
-  </div>
 </div>
-
-
-<div class="card">
-  <h2>Global Macro Intelligence</h2>
-
-  <div class="grid">
-    <div class="box">
-      <div class="label">MACRO REGIME</div>
-      <div id="macroRegime" class="big">--</div>
-    </div>
-
-    <div class="box">
-      <div class="label">MACRO RISK</div>
-      <div id="macroRisk" class="big">--</div>
-    </div>
-  </div>
-
-  <div id="macroIndicators" style="margin-top:15px">
-    <div class="muted">正在读取 FRED...</div>
-  </div>
-
-  <div style="margin-top:14px">
-    <div class="label">Macro Drivers</div>
-    <div id="macroReasons"></div>
-  </div>
-</div>
-
-
-<div class="card">
-  <h2>Risk Engine</h2>
-
-  <div class="row">
-    <span>市场风险</span>
-    <span id="marketRisk" class="value">--</span>
-  </div>
-
-  <div class="row">
-    <span>波动风险</span>
-    <span id="volRisk" class="value">--</span>
-  </div>
-
-  <div class="row">
-    <span>宏观经济</span>
-    <span id="riskMacro" class="value">--</span>
-  </div>
-
-  <div class="row">
-    <span>地缘政治</span>
-    <span class="value yellow">NEXT · V4.5</span>
-  </div>
-
-  <div class="row">
-    <span>重大经济事件</span>
-    <span class="value yellow">NEXT · V4.5</span>
-  </div>
-</div>
-
-
-<div class="card">
-  <h2>Data Quality Monitor</h2>
-
-  <div class="row">
-    <span>Worker</span>
-    <span id="workerStatus" class="value">CONNECTING</span>
-  </div>
-
-  <div class="row">
-    <span>Market Source</span>
-    <span id="sourceStatus" class="value">--</span>
-  </div>
-
-  <div class="row">
-    <span>FRED Macro</span>
-    <span id="fredStatus" class="value">--</span>
-  </div>
-
-  <div class="row">
-    <span>Worker Version</span>
-    <span id="version" class="value">--</span>
-  </div>
-
-  <button onclick="refreshAll()">立即刷新</button>
-</div>
-
-</main>
-
-<footer>
-仅用于市场研究及模拟分析，不构成投资建议。<br>
-价格基准与实际交易所成交价可能存在差异。<br>
-宏观数据用于风险过滤，不单独产生交易信号。
-</footer>
-
 
 <script>
-
-const WORKER =
-"https://zec-ai-intelligence-v42.g-63285376.workers.dev";
-
-let MARKET=null;
-let MACRO=null;
+const API =
+"https://zec-ai-intelligence-v42.g-63285376.workers.dev/intelligence";
 
 const $=id=>document.getElementById(id);
 
-function n(v,d=2){
-  const x=Number(v);
-  return Number.isFinite(x)?x.toFixed(d):"--";
+function pct(v){
+  if(v==null || !Number.isFinite(Number(v))) return "--";
+  const n=Number(v);
+  return `${n>=0?"+":""}${n.toFixed(2)}%`;
 }
 
 function money(v){
-  const x=Number(v);
-  if(!Number.isFinite(x)) return "--";
-  return "$"+x.toLocaleString(undefined,{
+  if(v==null || !Number.isFinite(Number(v))) return "--";
+  return "$"+Number(v).toLocaleString(undefined,{
     minimumFractionDigits:2,
     maximumFractionDigits:2
   });
 }
 
-function pct(v){
-  const x=Number(v);
-  if(!Number.isFinite(x)) return "--";
-  return (x>0?"+":"")+x.toFixed(2)+"%";
-}
+function tone(el,value){
+  if(!el) return;
 
-function colorPct(el,v){
-  const x=Number(v);
-  el.className="big "+(x>0?"green":x<0?"red":"yellow");
-}
+  el.classList.remove("pos","neg","warn","info","purple");
 
-function smallPct(el,v){
-  const x=Number(v);
-  el.className=x>0?"green":x<0?"red":"yellow";
-}
-
-function riskColor(el,value){
   const s=String(value||"").toUpperCase();
-  el.className="value "+
-    (s==="HIGH"||s==="RISK_OFF"?"red":
-     s==="LOW"||s==="RISK_ON"?"green":"yellow");
-}
 
-async function getJSON(path){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),12000);
-
-  try{
-    const r=await fetch(WORKER+path,{
-      cache:"no-store",
-      signal:controller.signal
-    });
-
-    if(!r.ok) throw new Error("HTTP "+r.status);
-
-    return await r.json();
-  }finally{
-    clearTimeout(timer);
+  if(
+    s.includes("HIGH") ||
+    s.includes("RISK_OFF") ||
+    s.includes("WEAK") ||
+    s.includes("DEFENSIVE") ||
+    s.includes("UNAVAILABLE")
+  ){
+    el.classList.add("neg");
+  }else if(
+    s.includes("LOW") ||
+    s.includes("RISK_ON") ||
+    s.includes("STRONG") ||
+    s==="OK" ||
+    s.includes("NORMAL")
+  ){
+    el.classList.add("pos");
+  }else if(
+    s.includes("UNKNOWN") ||
+    s.includes("MEDIUM") ||
+    s.includes("CAUTIOUS") ||
+    s.includes("DEGRADED") ||
+    s.includes("WAIT") ||
+    s.includes("REDUCED")
+  ){
+    el.classList.add("warn");
+  }else{
+    el.classList.add("info");
   }
 }
 
-
-function unwrapMarket(data){
-  if(!data) return {};
-
-  if(data.market) return data.market;
-
-  return data;
+function percentTone(el,v){
+  el.textContent=pct(v);
+  el.className=Number(v)>=0?"pos":"neg";
 }
 
-function getAsset(market,symbol){
-  if(!market) return null;
+function addReasons(container,reasons){
+  container.innerHTML="";
 
-  return market[symbol] ||
-         market[symbol.toLowerCase()] ||
-         null;
+  if(!Array.isArray(reasons)||!reasons.length){
+    container.innerHTML=
+      '<div class="reason">No additional driver reported.</div>';
+    return;
+  }
+
+  reasons.forEach(r=>{
+    const d=document.createElement("div");
+    d.className="reason";
+    d.textContent=r;
+    container.appendChild(d);
+  });
 }
 
+function decisionEngine(d){
+  const z=d.market?.ZEC;
+  const ctx=d.marketContext||{};
+  const macro=d.macro||{};
+  const events=d.events||{};
+  const geo=d.geopolitical||{};
+  const global=d.globalRisk||{};
+  const q=d.dataQuality||{};
 
-function buildDecision(){
+  let bearish=0;
+  let bullish=0;
+  let chase=0;
+  const reasons=[];
 
-  const m=unwrapMarket(MARKET);
+  if(z?.change24h<=-4){
+    bearish+=3;
+    chase+=2;
+    reasons.push("ZEC has strong negative 24H momentum.");
+  }else if(z?.change24h<=-1){
+    bearish+=2;
+    reasons.push("ZEC 24H momentum is negative.");
+  }
 
-  const z=getAsset(m,"ZEC");
-  const b=getAsset(m,"BTC");
-  const e=getAsset(m,"ETH");
+  if(z?.change24h>=4){
+    bullish+=3;
+    chase+=2;
+    reasons.push("ZEC has strong positive 24H momentum.");
+  }else if(z?.change24h>=1){
+    bullish+=2;
+    reasons.push("ZEC 24H momentum is positive.");
+  }
 
-  if(!z) return;
+  if(z?.change7d<0) bearish++;
+  if(z?.change7d>0) bullish++;
 
-  const z1=Number(z.change1h)||0;
-  const z24=Number(z.change24h)||0;
-  const z7=Number(z.change7d)||0;
+  if(ctx.relativeStrength==="WEAK"){
+    bearish+=2;
+    reasons.push("ZEC is underperforming BTC/ETH.");
+  }
 
-  const b24=b ? Number(b.change24h)||0 : 0;
-  const e24=e ? Number(e.change24h)||0 : 0;
+  if(ctx.relativeStrength==="STRONG"){
+    bullish+=2;
+    reasons.push("ZEC is outperforming BTC/ETH.");
+  }
+
+  if(ctx.regime==="RISK_OFF"){
+    bearish+=2;
+    reasons.push("BTC/ETH environment is risk-off.");
+  }
+
+  if(ctx.regime==="RISK_ON"){
+    bullish+=2;
+    reasons.push("BTC/ETH environment is risk-on.");
+  }
+
+  if(macro.regime==="RISK_OFF"){
+    bearish+=2;
+    reasons.push("Macro regime is risk-off.");
+  }
+
+  if(macro.regime==="RISK_ON"){
+    bullish+=2;
+    reasons.push("Macro regime is risk-on.");
+  }
+
+  if(events.risk==="HIGH"){
+    chase+=2;
+    reasons.push("High-impact economic event risk is active.");
+  }
+
+  if(global.risk==="HIGH"){
+    chase+=2;
+    reasons.push("Global risk fusion is HIGH.");
+  }else if(global.risk==="MEDIUM"){
+    chase++;
+  }
+
+  if(geo.risk==="UNKNOWN"){
+    chase++;
+    reasons.push(
+      "Geopolitical feed is unavailable; uncertainty is not treated as low risk."
+    );
+  }
+
+  const directional=Math.abs(bullish-bearish);
 
   let trend="NEUTRAL";
-  let setup=50;
-  let entry=55;
-  let chase="MEDIUM";
-  let action="WAIT";
-
-  let reasons=[];
-
-
-  /* -------------------------
-     MARKET TREND
-  ------------------------- */
-
-  if(z24<=-4 && z7<0){
-    trend="BEARISH";
-    setup-=20;
-    reasons.push("ZEC 24H 跌幅较大，主要趋势偏空。");
-  }
-  else if(z24>=4 && z7>0){
-    trend="BULLISH";
-    setup+=20;
-    reasons.push("ZEC 24H 涨幅较强，主要趋势偏多。");
-  }
-  else if(z24<0){
-    trend="BEARISH";
-    setup-=10;
-    reasons.push("ZEC 24H 表现偏弱。");
-  }
-  else if(z24>0){
-    trend="BULLISH";
-    setup+=10;
-    reasons.push("ZEC 24H 表现偏强。");
-  }
-
-  if(z7<=-5){
-    setup-=8;
-    reasons.push("ZEC 7 日表现仍然偏弱。");
-  }
-
-  if(z7>=5){
-    setup+=8;
-    reasons.push("ZEC 7 日动能保持偏强。");
-  }
-
-
-  /* -------------------------
-     BTC / ETH CONTEXT
-  ------------------------- */
-
-  const benchmark=(b24+e24)/2;
-  const relative=z24-benchmark;
-
-  if(relative<-3){
-    setup-=8;
-    reasons.push("ZEC 相对 BTC/ETH 明显偏弱。");
-  }
-
-  if(relative>3){
-    setup+=8;
-    reasons.push("ZEC 相对 BTC/ETH 表现较强。");
-  }
-
-
-  /* -------------------------
-     MACRO FILTER
-  ------------------------- */
-
-  const macroRegime=
-    MACRO?.regime ||
-    MACRO?.macroRegime ||
-    "UNKNOWN";
-
-  const macroRisk=
-    MACRO?.risk ||
-    MACRO?.macroRisk ||
-    "UNKNOWN";
-
-  if(macroRegime==="RISK_OFF"){
-    setup-=10;
-
-    if(trend==="BULLISH"){
-      entry-=12;
-    }
-
-    reasons.push(
-      "宏观环境处于 RISK-OFF，对高波动加密资产形成逆风。"
-    );
-  }
-
-  if(macroRegime==="RISK_ON"){
-    setup+=8;
-
-    if(trend==="BULLISH"){
-      entry+=8;
-    }
-
-    reasons.push(
-      "宏观环境偏 RISK-ON，风险资产环境相对有利。"
-    );
-  }
-
-  if(macroRisk==="HIGH"){
-    entry-=10;
-  }
-
-
-  /* -------------------------
-     CHASE PROTECTION
-  ------------------------- */
-
-  if(trend==="BEARISH" && z24<=-5){
-    chase="HIGH";
-    action="WAIT FOR PULLBACK";
-    entry-=15;
-
-    reasons.push(
-      "趋势虽然偏空，但价格已经明显下跌；现在追空风险较高。"
-    );
-  }
-
-  else if(trend==="BULLISH" && z24>=5){
-    chase="HIGH";
-    action="WAIT FOR PULLBACK";
-    entry-=15;
-
-    reasons.push(
-      "趋势虽然偏多，但短期涨幅已经较大；避免追高。"
-    );
-  }
-
-  else if(trend==="BEARISH"){
-    chase="MEDIUM";
-    action="WAIT FOR CONFIRMATION";
-  }
-
-  else if(trend==="BULLISH"){
-    chase="MEDIUM";
-    action="WAIT FOR CONFIRMATION";
-  }
-
-  else{
-    chase="MEDIUM";
-    action="WAIT";
-  }
-
-
-  setup=Math.max(0,Math.min(100,Math.round(setup)));
-  entry=Math.max(0,Math.min(100,Math.round(entry)));
-
-
-  $("trend").textContent=trend;
-  $("trend").className="big "+
-    (trend==="BULLISH"?"green":
-     trend==="BEARISH"?"red":"yellow");
-
-  $("action").textContent=action;
-  $("action").className="big yellow";
-
-  $("setup").textContent=setup+"/100";
-
-  $("chase").textContent=chase;
-  $("chase").className="big "+
-    (chase==="HIGH"?"red":
-     chase==="LOW"?"green":"yellow");
-
-  $("entryText").textContent=entry+"/100";
-  $("entryBar").style.width=entry+"%";
-
-
-  $("why").innerHTML=
-    reasons.slice(0,6)
-      .map(x=>'<div class="reason">• '+x+'</div>')
-      .join("");
-}
-
-
-function renderMarket(data){
-
-  MARKET=data;
-
-  const m=unwrapMarket(data);
-
-  const z=getAsset(m,"ZEC");
-  const b=getAsset(m,"BTC");
-  const e=getAsset(m,"ETH");
-
-  if(!z) throw new Error("ZEC market data unavailable");
-
-
-  $("zecPrice").textContent=money(z.price);
-
-  $("zec1h").textContent=pct(z.change1h);
-  colorPct($("zec1h"),z.change1h);
-
-  $("zec24h").textContent=pct(z.change24h);
-  colorPct($("zec24h"),z.change24h);
-
-  $("zec7d").textContent=pct(z.change7d);
-  colorPct($("zec7d"),z.change7d);
-
-  $("marketSource").textContent=
-    z.source ||
-    data?.dataQuality?.primarySource ||
-    "Multi-Source";
-
-
-  if(b){
-    $("btcPrice").textContent=money(b.price);
-    $("btc24").textContent="24H "+pct(b.change24h);
-    smallPct($("btc24"),b.change24h);
-  }
-
-  if(e){
-    $("ethPrice").textContent=money(e.price);
-    $("eth24").textContent="24H "+pct(e.change24h);
-    smallPct($("eth24"),e.change24h);
-  }
-
-
-  const b24=b?Number(b.change24h)||0:0;
-  const e24=e?Number(e.change24h)||0:0;
-  const z24=Number(z.change24h)||0;
-
-  const avg=(b24+e24)/2;
-
-  let regime="NEUTRAL";
-
-  if(b24>1 && e24>1) regime="RISK-ON";
-  if(b24<-1 && e24<-1) regime="RISK-OFF";
-
-  $("marketRegime").textContent=regime;
-  $("marketRegime").className="big "+
-    (regime==="RISK-ON"?"green":
-     regime==="RISK-OFF"?"red":"yellow");
-
-
-  const rel=z24-avg;
-
-  let rs="NEUTRAL";
-
-  if(rel>3) rs="STRONG";
-  if(rel<-3) rs="WEAK";
-
-  $("relative").textContent=rs;
-  $("relative").className="big "+
-    (rs==="STRONG"?"green":
-     rs==="WEAK"?"red":"yellow");
-
-
-  let marketRisk="MEDIUM";
-
-  if(regime==="RISK-OFF" || Math.abs(z24)>7)
-    marketRisk="HIGH";
-
-  if(regime==="RISK-ON" && Math.abs(z24)<4)
-    marketRisk="LOW";
-
-  $("marketRisk").textContent=marketRisk;
-  riskColor($("marketRisk"),marketRisk);
-
-
-  let volRisk=
-    Math.abs(z24)>=8 ? "HIGH" :
-    Math.abs(z24)>=4 ? "MEDIUM" :
+  if(bearish>=bullish+2) trend="BEARISH";
+  if(bullish>=bearish+2) trend="BULLISH";
+
+  let setup=Math.round(
+    clamp(
+      directional*10 +
+      (q.confidence||0)*0.35 -
+      chase*8,
+      0,
+      100
+    )
+  );
+
+  let entry=Math.round(
+    clamp(
+      (q.confidence||0) -
+      chase*10 -
+      (events.risk==="HIGH"?10:0),
+      0,
+      100
+    )
+  );
+
+  let chaseRisk=
+    chase>=5?"HIGH":
+    chase>=2?"MEDIUM":
     "LOW";
 
-  $("volRisk").textContent=volRisk;
-  riskColor($("volRisk"),volRisk);
+  let action="WAIT FOR CONFIRMATION";
 
+  if(
+    q.confidence>=85 &&
+    global.risk!=="HIGH" &&
+    geo.risk!=="UNKNOWN" &&
+    setup>=70 &&
+    entry>=65
+  ){
+    action=
+      trend==="BULLISH"?"BUY SETUP":
+      trend==="BEARISH"?"SELL SETUP":
+      "WAIT FOR CONFIRMATION";
+  }
 
-  $("sourceStatus").textContent=
-    z.source || "Multi-Source";
+  if(q.confidence<60){
+    action="CAUTION · DATA INCOMPLETE";
+  }
 
-  $("time").textContent=
-    new Date().toLocaleTimeString();
+  if(global.signalPermission==="REDUCED_CONFIDENCE"){
+    action="WAIT FOR CONFIRMATION";
+  }
 
-  $("live").textContent="● LIVE";
-  $("live").className="pill green";
-
-  buildDecision();
-}
-
-
-function indicatorName(id,obj){
-
-  if(obj?.name) return obj.name;
-
-  const names={
-    DGS10:"US 10Y Treasury",
-    DFF:"Fed Funds Rate",
-    DTWEXBGS:"US Dollar Index Broad",
-    VIXCLS:"VIX",
-    CPIAUCSL:"CPI",
-    UNRATE:"Unemployment Rate"
+  return {
+    trend,
+    action,
+    setup,
+    entry,
+    chaseRisk,
+    reasons
   };
-
-  return names[id]||id;
 }
 
-
-function renderMacro(data){
-
-  MACRO=data;
-
-  const regime=
-    data?.regime ||
-    data?.macroRegime ||
-    "UNKNOWN";
-
-  const risk=
-    data?.risk ||
-    data?.macroRisk ||
-    "UNKNOWN";
-
-
-  $("macroRegime").textContent=regime;
-  $("macroRegime").className="big "+
-    (regime==="RISK_ON"||regime==="RISK-ON"?"green":
-     regime==="RISK_OFF"||regime==="RISK-OFF"?"red":"yellow");
-
-  $("macroRisk").textContent=risk;
-  $("macroRisk").className="big "+
-    (risk==="HIGH"?"red":
-     risk==="LOW"?"green":"yellow");
-
-
-  $("riskMacro").textContent=risk+" · "+regime;
-  riskColor($("riskMacro"),risk);
-
-  $("fredStatus").textContent=
-    data?.ok ? "ACTIVE" : "DEGRADED";
-
-  $("fredStatus").className=
-    "value "+(data?.ok?"green":"yellow");
-
-
-  const indicators=data?.indicators||{};
-
-  const preferred=[
-    "DGS10",
-    "DFF",
-    "DTWEXBGS",
-    "VIXCLS",
-    "CPIAUCSL",
-    "UNRATE"
-  ];
-
-  let html="";
-
-  preferred.forEach(id=>{
-
-    const x=indicators[id];
-
-    if(!x) return;
-
-    let val=n(x.value,2);
-
-    if(x.type==="yield" || x.type==="rate")
-      val+="%";
-
-    html+=`
-      <div class="row">
-        <span>${indicatorName(id,x)}</span>
-        <span class="value">
-          ${val}
-          <span class="muted"
-            style="font-size:12px">
-            ${x.date||""}
-          </span>
-        </span>
-      </div>
-    `;
-  });
-
-  $("macroIndicators").innerHTML=
-    html || '<div class="muted">暂无宏观指标</div>';
-
-
-  const reasons=Array.isArray(data?.reasons)
-    ? data.reasons
-    : [];
-
-  $("macroReasons").innerHTML=
-    reasons.length
-      ? reasons.map(x=>
-          '<div class="reason">• '+x+'</div>'
-        ).join("")
-      : '<div class="muted">暂无宏观风险说明</div>';
-
-  buildDecision();
+function clamp(v,min,max){
+  return Math.max(min,Math.min(max,v));
 }
 
+async function loadData(){
+  const btn=$("refreshBtn");
+  const error=$("errorBox");
 
-async function loadHealth(){
+  btn.disabled=true;
+  btn.textContent="Loading Intelligence...";
+  error.style.display="none";
+  $("workerStatus").textContent="Updating...";
 
   try{
+    const r=await fetch(API+"?t="+Date.now(),{
+      cache:"no-store"
+    });
 
-    const d=await getJSON("/health");
+    if(!r.ok) throw new Error("Worker HTTP "+r.status);
+
+    const d=await r.json();
+
+    if(!d || !d.market){
+      throw new Error("Invalid intelligence response");
+    }
 
     $("workerStatus").textContent=
-      d?.status || "ONLINE";
+      `ONLINE · V${d.version||"4.5.3"}`;
 
-    $("workerStatus").className="value green";
+    const z=d.market?.ZEC||{};
+    const btc=d.market?.BTC||{};
+    const eth=d.market?.ETH||{};
 
-    $("version").textContent=
-      d?.version || "--";
+    $("zecPrice").textContent=money(z.price);
+    percentTone($("zec1h"),z.change1h);
+    percentTone($("zec24h"),z.change24h);
+    percentTone($("zec7d"),z.change7d);
+    $("marketSource").textContent=z.source||"--";
 
-    const fred=
-      d?.modules?.fredMacro;
+    $("btc").textContent=
+      `${money(btc.price)} · ${pct(btc.change24h)}`;
+    $("eth").textContent=
+      `${money(eth.price)} · ${pct(eth.change24h)}`;
 
-    if(fred){
-      $("fredStatus").textContent=fred;
-      $("fredStatus").className=
-        "value "+(fred==="ACTIVE"?"green":"yellow");
+    $("marketRegime").textContent=
+      d.marketContext?.regime||"--";
+    tone($("marketRegime"),$("marketRegime").textContent);
+
+    $("relativeStrength").textContent=
+      d.marketContext?.relativeStrength||"--";
+    tone($("relativeStrength"),$("relativeStrength").textContent);
+
+    const macro=d.macro||{};
+
+    $("macroRegime").textContent=macro.regime||"UNKNOWN";
+    tone($("macroRegime"),$("macroRegime").textContent);
+
+    $("macroRisk").textContent=macro.risk||"UNKNOWN";
+    tone($("macroRisk"),$("macroRisk").textContent);
+
+    $("fredStatus").textContent=
+      `${macro.status||"UNKNOWN"}${
+        macro.successfulSeries!=null
+        ?` · ${macro.successfulSeries}/${macro.totalSeries}`
+        :""
+      }`;
+
+    tone($("fredStatus"),macro.status);
+    addReasons($("macroReasons"),macro.reasons);
+
+    const events=d.events||{};
+
+    $("eventRisk").textContent=events.risk||"UNKNOWN";
+    tone($("eventRisk"),$("eventRisk").textContent);
+
+    $("nextEvent").textContent=
+      events.nextEvent?.name||"No event returned";
+
+    $("eventDate").textContent=
+      events.nextEvent
+      ?`${events.nextEvent.date} · ${events.nextEvent.daysAway} day(s)`
+      :"--";
+
+    const geo=d.geopolitical||{};
+
+    $("geoSource").textContent=geo.source||"--";
+    $("geoStatus").textContent=geo.status||"UNKNOWN";
+    tone($("geoStatus"),$("geoStatus").textContent);
+
+    $("geoRisk").textContent=geo.risk||"UNKNOWN";
+    tone($("geoRisk"),$("geoRisk").textContent);
+
+    $("geoConfidence").textContent=
+      `${geo.confidence??0}%`;
+
+    $("geoMessage").textContent=
+      geo.reason ||
+      geo.reasons?.[0] ||
+      "Geopolitical monitoring operational.";
+
+    $("headlines").innerHTML="";
+
+    if(Array.isArray(geo.headlines) && geo.headlines.length){
+      geo.headlines.slice(0,5).forEach(h=>{
+        const x=document.createElement("div");
+        x.className="headline";
+        x.textContent=h.title||"Untitled headline";
+        $("headlines").appendChild(x);
+      });
     }
 
+    const global=d.globalRisk||{};
+
+    $("globalRisk").textContent=global.risk||"UNKNOWN";
+    tone($("globalRisk"),$("globalRisk").textContent);
+
+    $("globalScore").textContent=
+      global.riskScore!=null
+      ?`${global.riskScore}/10`
+      :"--";
+
+    $("posture").textContent=global.posture||"--";
+    tone($("posture"),$("posture").textContent);
+
+    $("reliability").textContent=
+      global.decisionReliability||"--";
+    tone($("reliability"),$("reliability").textContent);
+
+    $("signalPermission").textContent=
+      global.signalPermission||"--";
+    tone($("signalPermission"),$("signalPermission").textContent);
+
+    addReasons($("globalReasons"),global.reasons);
+
+    const q=d.dataQuality||{};
+
+    $("qualityStatus").textContent=q.status||"UNKNOWN";
+    tone($("qualityStatus"),$("qualityStatus").textContent);
+
+    $("qualityConfidence").textContent=
+      `${q.confidence??0}%`;
+
+    $("qualityBar").style.width=
+      `${clamp(q.confidence||0,0,100)}%`;
+
+    $("qMarket").textContent=q.market||"--";
+    $("qMacro").textContent=q.macro||"--";
+    $("qEvents").textContent=q.events||"--";
+    $("qGeo").textContent=q.geopolitical||"--";
+
+    tone($("qMarket"),$("qMarket").textContent);
+    tone($("qMacro"),$("qMacro").textContent);
+    tone($("qEvents"),$("qEvents").textContent);
+    tone($("qGeo"),$("qGeo").textContent);
+
+    const dec=decisionEngine(d);
+
+    $("trend").textContent=dec.trend;
+    tone($("trend"),dec.trend);
+
+    $("action").textContent=dec.action;
+    tone($("action"),dec.action);
+
+    $("setupScore").textContent=`${dec.setup}/100`;
+    $("setupBar").style.width=`${dec.setup}%`;
+
+    $("entryQuality").textContent=`${dec.entry}/100`;
+
+    $("chaseRisk").textContent=dec.chaseRisk;
+    tone($("chaseRisk"),dec.chaseRisk);
+
+    $("actionReason").textContent=
+      dec.action==="WAIT FOR CONFIRMATION"
+      ?"Directional conditions exist, but confirmation and risk conditions are not strong enough for a clean setup."
+      :dec.action==="CAUTION · DATA INCOMPLETE"
+      ?"Data confidence is insufficient for a normal market setup."
+      :"Research conditions satisfy the current setup filter.";
+
+    addReasons($("why"),dec.reasons);
+
+    $("updated").textContent=
+      "Last intelligence update: "+
+      new Date(d.timestamp||Date.now()).toLocaleString();
+
   }catch(e){
+    $("workerStatus").textContent="CONNECTION ERROR";
 
-    $("workerStatus").textContent="ERROR";
-    $("workerStatus").className="value red";
+    error.textContent=
+      "Unable to load Intelligence API: "+e.message;
+    error.style.display="block";
 
+  }finally{
+    btn.disabled=false;
+    btn.textContent="Refresh Intelligence";
   }
 }
 
+loadData();
 
-async function loadMarket(){
-
-  try{
-
-    let d;
-
-    try{
-      d=await getJSON("/api/market");
-    }catch(e){
-      d=await getJSON("/api/global");
-    }
-
-    if(d?.ok===false)
-      throw new Error("Market API returned false");
-
-    renderMarket(d);
-
-  }catch(e){
-
-    $("live").textContent="● DATA ERROR";
-    $("live").className="pill red";
-
-    console.error("Market:",e);
-
-  }
-}
-
-
-async function loadMacro(){
-
-  try{
-
-    const d=await getJSON("/api/macro");
-
-    if(d?.ok===false)
-      throw new Error("Macro API returned false");
-
-    renderMacro(d);
-
-  }catch(e){
-
-    $("macroRegime").textContent="UNAVAILABLE";
-    $("macroRegime").className="big yellow";
-
-    $("macroRisk").textContent="MONITOR";
-    $("macroRisk").className="big yellow";
-
-    $("riskMacro").textContent="MONITOR";
-    $("riskMacro").className="value yellow";
-
-    $("fredStatus").textContent="DEGRADED";
-    $("fredStatus").className="value yellow";
-
-    console.error("Macro:",e);
-
-  }
-}
-
-
-async function refreshAll(){
-
-  $("live").textContent="● REFRESHING";
-
-  await Promise.allSettled([
-    loadHealth(),
-    loadMarket(),
-    loadMacro()
-  ]);
-
-  buildDecision();
-}
-
-
-/* Initial load */
-
-refreshAll();
-
-
-/* Market refresh: 15 seconds
-   Macro refresh: 5 minutes
-   FRED is not tick data, so no reason to poll every few seconds.
-*/
-
-setInterval(loadMarket,15000);
-setInterval(loadMacro,300000);
-setInterval(loadHealth,300000);
-
+setInterval(loadData,60000);
 </script>
 
 </body>
