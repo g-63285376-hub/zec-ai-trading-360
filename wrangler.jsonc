@@ -1,0 +1,5 @@
+{
+  "name": "zec-ai-intelligence-v42",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-10"
+}
