@@ -2,6 +2,11 @@
   "name": "zec-ai-intelligence-v42",
   "main": "worker.js",
   "compatibility_date": "2026-11-10",
+
+  "ai": {
+    "binding": "AI"
+  },
+
   "kv_namespaces": [
     {
       "binding": "INTEL_KV",
