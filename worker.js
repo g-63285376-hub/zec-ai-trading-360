@@ -1,9 +1,10 @@
-/* ZEC AI Intelligence Worker V4.7.1
+/* ZEC AI Intelligence Worker V4.7.2
+   Persistent KV Intelligence Cache
    Multi-Source Geopolitical Intelligence
    Market research & simulation only.
 */
 
-const VERSION = "4.7.1";
+const VERSION = "4.7.2";
 
 const HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -50,8 +51,8 @@ const RELEASES = [
 ];
 
 /*
-  Official scheduled 2026 FOMC meeting decision dates.
-  FRED release dates are NOT used as FOMC meeting dates.
+  Official scheduled 2026 FOMC decision dates.
+  FRED release dates are NOT treated as FOMC meetings.
 */
 const FOMC_2026 = [
   { start: "2026-01-27", date: "2026-01-28" },
@@ -65,81 +66,150 @@ const FOMC_2026 = [
 ];
 
 /* =========================================================
-   GEOPOLITICAL CONFIGURATION
+   KV CACHE
 ========================================================= */
 
-const GEO_CATEGORIES = {
-  WAR: {
-    weight: 3,
-    words: [
-      "war",
-      "military",
-      "missile",
-      "missiles",
-      "invasion",
-      "airstrike",
-      "air strike",
-      "attack",
-      "attacks",
-      "conflict",
-      "drone strike",
-      "ceasefire"
-    ]
-  },
-
-  SANCTIONS: {
-    weight: 2,
-    words: [
-      "sanction",
-      "sanctions",
-      "embargo",
-      "asset freeze"
-    ]
-  },
-
-  ENERGY: {
-    weight: 2,
-    words: [
-      "oil",
-      "opec",
-      "pipeline",
-      "energy supply",
-      "crude oil",
-      "natural gas"
-    ]
-  },
-
-  TRADE: {
-    weight: 2,
-    words: [
-      "tariff",
-      "tariffs",
-      "trade war",
-      "export control",
-      "export controls",
-      "trade restrictions"
-    ]
-  },
-
-  SHIPPING: {
-    weight: 3,
-    words: [
-      "red sea",
-      "strait of hormuz",
-      "suez canal",
-      "shipping",
-      "shipping route",
-      "shipping routes",
-      "vessel attack"
-    ]
-  }
+const KV_KEYS = {
+  GEO: "geo:last_reliable:v1"
 };
 
-const GOOGLE_GEO_QUERY =
-  '("war" OR "military" OR "missile" OR "sanctions" OR "tariff" OR "Red Sea" OR "Strait of Hormuz" OR "Suez Canal" OR "OPEC" OR "oil supply") when:1d';
+const GEO_CACHE_MAX_AGE_MS =
+  6 * 60 * 60 * 1000; // 6 hours
 
-const GDELT_QUERY =
-  '(war OR military OR missile OR sanctions OR embargo OR tariff OR "trade war" OR "Red Sea" OR "Strait of Hormuz" OR "Suez Canal" OR OPEC OR pipeline)';
+async function kvGet(env, key) {
+  try {
+    if (!env.INTEL_KV) return null;
+
+    const raw =
+      await env.INTEL_KV.get(key);
+
+    if (!raw) return null;
+
+    return JSON.parse(raw);
+
+  } catch (_) {
+    return null;
+  }
+}
+
+async function kvPut(env, key, value) {
+  try {
+    if (!env.INTEL_KV) return false;
+
+    await env.INTEL_KV.put(
+      key,
+      JSON.stringify(value),
+      {
+        expirationTtl: 86400
+      }
+    );
+
+    return true;
+
+  } catch (_) {
+    return false;
+  }
+}
+
+async function saveGeoCache(env, geo) {
+  if (
+    !geo ||
+    !geo.dataAvailable ||
+    geo.risk === "UNKNOWN"
+  ) {
+    return false;
+  }
+
+  return kvPut(
+    env,
+    KV_KEYS.GEO,
+    {
+      savedAt:
+        new Date().toISOString(),
+
+      data:
+        geo
+    }
+  );
+}
+
+async function loadGeoCache(env) {
+  const cached =
+    await kvGet(
+      env,
+      KV_KEYS.GEO
+    );
+
+  if (
+    !cached ||
+    !cached.savedAt ||
+    !cached.data
+  ) {
+    return null;
+  }
+
+  const saved =
+    Date.parse(cached.savedAt);
+
+  if (!Number.isFinite(saved)) {
+    return null;
+  }
+
+  const ageMs =
+    Date.now() - saved;
+
+  if (
+    ageMs < 0 ||
+    ageMs >
+      GEO_CACHE_MAX_AGE_MS
+  ) {
+    return null;
+  }
+
+  return {
+    ...cached.data,
+
+    ok: true,
+
+    status:
+      "STALE_CACHE",
+
+    live:
+      false,
+
+    cacheUsed:
+      true,
+
+    cachedAt:
+      cached.savedAt,
+
+    cacheAgeMinutes:
+      Math.round(
+        ageMs / 60000
+      ),
+
+    confidence:
+      Math.max(
+        25,
+        Math.round(
+          (cached.data.confidence || 50) *
+          Math.max(
+            0.45,
+            1 -
+            ageMs /
+            GEO_CACHE_MAX_AGE_MS *
+            0.45
+          )
+        )
+      ),
+
+    messageCN:
+      "实时地缘政治来源暂时不可用，正在使用最近一次可靠缓存；置信度已自动降低。",
+
+    methodology:
+      "Live sources unavailable. Last reliable KV cache is used with reduced confidence. Cached intelligence never independently creates BUY or SELL signals."
+  };
+}
 
 /* =========================================================
    GENERAL HELPERS
@@ -147,7 +217,11 @@ const GDELT_QUERY =
 
 function reply(data, status = 200) {
   return new Response(
-    JSON.stringify(data, null, 2),
+    JSON.stringify(
+      data,
+      null,
+      2
+    ),
     {
       status,
       headers: HEADERS
@@ -157,25 +231,36 @@ function reply(data, status = 200) {
 
 function num(v) {
   const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+
+  return Number.isFinite(n)
+    ? n
+    : null;
 }
 
 function clamp(v, min, max) {
-  return Math.max(min, Math.min(max, v));
+  return Math.max(
+    min,
+    Math.min(max, v)
+  );
 }
 
 function sleep(ms) {
   return new Promise(
-    resolve => setTimeout(resolve, ms)
+    resolve =>
+      setTimeout(
+        resolve,
+        ms
+      )
   );
 }
 
 function timeoutValue(ms, value) {
   return new Promise(
-    resolve => setTimeout(
-      () => resolve(value),
-      ms
-    )
+    resolve =>
+      setTimeout(
+        () => resolve(value),
+        ms
+      )
   );
 }
 
@@ -196,18 +281,24 @@ function cleanText(v) {
 function normalizeTitle(v) {
   return cleanText(v)
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(
+      /[^\p{L}\p{N}\s]/gu,
+      " "
+    )
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function xmlValue(block, tag) {
-  const re = new RegExp(
-    `<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`,
-    "i"
-  );
+  const re =
+    new RegExp(
+      `<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`,
+      "i"
+    );
 
-  const match = String(block || "").match(re);
+  const match =
+    String(block || "")
+      .match(re);
 
   return match
     ? cleanText(match[1])
@@ -216,15 +307,18 @@ function xmlValue(block, tag) {
 
 function xmlLink(block) {
   const direct =
-    xmlValue(block, "link");
+    xmlValue(
+      block,
+      "link"
+    );
 
-  if (direct) {
-    return direct;
-  }
+  if (direct) return direct;
 
-  const atom = String(block || "").match(
-    /<link[^>]+href=["']([^"']+)["'][^>]*>/i
-  );
+  const atom =
+    String(block || "")
+      .match(
+        /<link[^>]+href=["']([^"']+)["'][^>]*>/i
+      );
 
   return atom
     ? cleanText(atom[1])
@@ -232,41 +326,62 @@ function xmlLink(block) {
 }
 
 function parseRSS(xml, sourceName) {
-  const text = String(xml || "");
+  const text =
+    String(xml || "");
 
   let blocks =
-    text.match(/<item\b[\s\S]*?<\/item>/gi) || [];
+    text.match(
+      /<item\b[\s\S]*?<\/item>/gi
+    ) || [];
 
   if (!blocks.length) {
     blocks =
-      text.match(/<entry\b[\s\S]*?<\/entry>/gi) || [];
+      text.match(
+        /<entry\b[\s\S]*?<\/entry>/gi
+      ) || [];
   }
 
   const items = [];
 
   for (const block of blocks) {
     const title =
-      xmlValue(block, "title");
+      xmlValue(
+        block,
+        "title"
+      );
 
-    if (!title) {
-      continue;
-    }
-
-    const source =
-      xmlValue(block, "source") ||
-      sourceName;
-
-    const published =
-      xmlValue(block, "pubDate") ||
-      xmlValue(block, "published") ||
-      xmlValue(block, "updated");
+    if (!title) continue;
 
     items.push({
       title,
-      url: xmlLink(block),
-      publisher: source,
-      published: published || null,
-      feedSource: sourceName
+
+      url:
+        xmlLink(block),
+
+      publisher:
+        xmlValue(
+          block,
+          "source"
+        ) ||
+        sourceName,
+
+      published:
+        xmlValue(
+          block,
+          "pubDate"
+        ) ||
+        xmlValue(
+          block,
+          "published"
+        ) ||
+        xmlValue(
+          block,
+          "updated"
+        ) ||
+        null,
+
+      feedSource:
+        sourceName
     });
   }
 
@@ -282,7 +397,8 @@ async function getJSON(
 
   const timer =
     setTimeout(
-      () => controller.abort(),
+      () =>
+        controller.abort(),
       timeout
     );
 
@@ -291,9 +407,13 @@ async function getJSON(
       await fetch(
         url,
         {
-          signal: controller.signal,
+          signal:
+            controller.signal,
+
           headers: {
-            Accept: "application/json",
+            Accept:
+              "application/json",
+
             "User-Agent":
               `ZEC-AI-Intelligence/${VERSION}`
           }
@@ -301,15 +421,9 @@ async function getJSON(
       );
 
     if (!response.ok) {
-      const err =
-        new Error(
-          `HTTP ${response.status}`
-        );
-
-      err.status =
-        response.status;
-
-      throw err;
+      throw new Error(
+        `HTTP ${response.status}`
+      );
     }
 
     return await response.json();
@@ -317,15 +431,12 @@ async function getJSON(
   } catch (err) {
     if (
       err &&
-      err.name === "AbortError"
+      err.name ===
+        "AbortError"
     ) {
-      const timeoutError =
-        new Error("TIMEOUT");
-
-      timeoutError.code =
-        "TIMEOUT";
-
-      throw timeoutError;
+      throw new Error(
+        "TIMEOUT"
+      );
     }
 
     throw err;
@@ -344,7 +455,8 @@ async function getText(
 
   const timer =
     setTimeout(
-      () => controller.abort(),
+      () =>
+        controller.abort(),
       timeout
     );
 
@@ -353,7 +465,9 @@ async function getText(
       await fetch(
         url,
         {
-          signal: controller.signal,
+          signal:
+            controller.signal,
+
           headers: {
             Accept:
               "application/rss+xml, application/xml, text/xml, text/plain, */*",
@@ -365,15 +479,9 @@ async function getText(
       );
 
     if (!response.ok) {
-      const err =
-        new Error(
-          `HTTP ${response.status}`
-        );
-
-      err.status =
-        response.status;
-
-      throw err;
+      throw new Error(
+        `HTTP ${response.status}`
+      );
     }
 
     return await response.text();
@@ -381,15 +489,12 @@ async function getText(
   } catch (err) {
     if (
       err &&
-      err.name === "AbortError"
+      err.name ===
+        "AbortError"
     ) {
-      const timeoutError =
-        new Error("TIMEOUT");
-
-      timeoutError.code =
-        "TIMEOUT";
-
-      throw timeoutError;
+      throw new Error(
+        "TIMEOUT"
+      );
     }
 
     throw err;
@@ -423,23 +528,32 @@ async function coinLore(symbol) {
 
   return {
     symbol,
+
     price:
       num(x.price_usd),
 
     change1h:
-      num(x.percent_change_1h),
+      num(
+        x.percent_change_1h
+      ),
 
     change24h:
-      num(x.percent_change_24h),
+      num(
+        x.percent_change_24h
+      ),
 
     change7d:
-      num(x.percent_change_7d),
+      num(
+        x.percent_change_7d
+      ),
 
     volume24h:
       num(x.volume24),
 
     marketCap:
-      num(x.market_cap_usd),
+      num(
+        x.market_cap_usd
+      ),
 
     source:
       "CoinLore"
@@ -453,9 +567,13 @@ const BINANCE = [
 ];
 
 async function binance(symbol) {
-  let lastError = "";
+  let lastError =
+    "Binance unavailable";
 
-  for (const host of BINANCE) {
+  for (
+    const host of
+    BINANCE
+  ) {
     try {
       const x =
         await getJSON(
@@ -473,13 +591,17 @@ async function binance(symbol) {
           null,
 
         change24h:
-          num(x.priceChangePercent),
+          num(
+            x.priceChangePercent
+          ),
 
         change7d:
           null,
 
         volume24h:
-          num(x.quoteVolume),
+          num(
+            x.quoteVolume
+          ),
 
         marketCap:
           null,
@@ -490,26 +612,31 @@ async function binance(symbol) {
 
     } catch (err) {
       lastError =
-        err.message;
+        err?.message ||
+        String(err);
     }
   }
 
   throw new Error(
-    lastError ||
-    "Binance unavailable"
+    lastError
   );
 }
 
 async function asset(symbol) {
   try {
-    return await coinLore(symbol);
+    return await coinLore(
+      symbol
+    );
 
   } catch (err) {
     const x =
-      await binance(symbol);
+      await binance(
+        symbol
+      );
 
     x.fallbackReason =
-      err.message;
+      err?.message ||
+      String(err);
 
     return x;
   }
@@ -522,17 +649,29 @@ function marketContext(
 ) {
   let score = 0;
 
-  if (btc?.change24h > 0) score++;
-  if (btc?.change24h >= 2) score++;
+  if (btc?.change24h > 0)
+    score++;
 
-  if (btc?.change24h < 0) score--;
-  if (btc?.change24h <= -2) score--;
+  if (btc?.change24h >= 2)
+    score++;
 
-  if (eth?.change24h > 0) score++;
-  if (eth?.change24h >= 2) score++;
+  if (btc?.change24h < 0)
+    score--;
 
-  if (eth?.change24h < 0) score--;
-  if (eth?.change24h <= -2) score--;
+  if (btc?.change24h <= -2)
+    score--;
+
+  if (eth?.change24h > 0)
+    score++;
+
+  if (eth?.change24h >= 2)
+    score++;
+
+  if (eth?.change24h < 0)
+    score--;
+
+  if (eth?.change24h <= -2)
+    score--;
 
   const regime =
     score >= 3
@@ -584,19 +723,19 @@ async function marketData() {
   const market = {
     ZEC:
       results[0].status ===
-      "fulfilled"
+        "fulfilled"
         ? results[0].value
         : null,
 
     BTC:
       results[1].status ===
-      "fulfilled"
+        "fulfilled"
         ? results[1].value
         : null,
 
     ETH:
       results[2].status ===
-      "fulfilled"
+        "fulfilled"
         ? results[2].value
         : null
   };
@@ -654,8 +793,7 @@ async function fredSeries(
   }
 
   return {
-    seriesId:
-      id,
+    seriesId: id,
 
     name:
       FRED[id],
@@ -795,9 +933,12 @@ async function macroData(
   if (!env.FRED_API_KEY) {
     return {
       ok: false,
-      status: "NOT_CONFIGURED",
-      risk: "UNKNOWN",
-      regime: "UNKNOWN",
+      status:
+        "NOT_CONFIGURED",
+      risk:
+        "UNKNOWN",
+      regime:
+        "UNKNOWN",
       messageCN:
         "FRED API密钥尚未配置"
     };
@@ -822,7 +963,10 @@ async function macroData(
 
     } catch (err) {
       errors.push(
-        `${id}: ${err.message}`
+        `${id}: ${
+          err?.message ||
+          String(err)
+        }`
       );
     }
 
@@ -842,6 +986,7 @@ async function macroData(
   if (!count) {
     return {
       ok: false,
+
       status:
         "DATA_UNAVAILABLE",
 
@@ -853,8 +998,7 @@ async function macroData(
 
       indicators,
 
-      successfulSeries:
-        0,
+      successfulSeries: 0,
 
       totalSeries:
         total,
@@ -1100,9 +1244,7 @@ function fomcEvents() {
     );
 }
 
-function eventRiskScore(
-  events
-) {
+function eventRiskScore(events) {
   let score = 0;
 
   const reasons = [];
@@ -1179,6 +1321,7 @@ async function eventData(
   if (!env.FRED_API_KEY) {
     return {
       ok: false,
+
       status:
         "NOT_CONFIGURED",
 
@@ -1188,8 +1331,7 @@ async function eventData(
       score:
         null,
 
-      events:
-        [],
+      events: [],
 
       messageCN:
         "经济事件雷达未配置"
@@ -1220,7 +1362,10 @@ async function eventData(
 
     } catch (err) {
       errors.push(
-        `${release.name}: ${err.message}`
+        `${release.name}: ${
+          err?.message ||
+          String(err)
+        }`
       );
     }
 
@@ -1264,8 +1409,7 @@ async function eventData(
       score:
         null,
 
-      events:
-        [],
+      events: [],
 
       errors,
 
@@ -1295,8 +1439,7 @@ async function eventData(
         ? "FAST_SEQUENTIAL"
         : "SEQUENTIAL",
 
-    horizonDays:
-      45,
+    horizonDays: 45,
 
     risk:
       analysis.risk,
@@ -1307,125 +1450,366 @@ async function eventData(
     nextEvent:
       events[0] || null,
 
-    events:
-      events.slice(
-        0,
-        10
-      ),
+    events,
 
     rawFredEventCount:
       rawFredEvents.length,
 
-    uniqueFredReleaseFamilies:
+    uniqueFredFamilyCount:
       fredEvents.length,
 
-    fomcEventCount:
-      officialFomc.length,
+    deduped:
+      true,
 
-    deduplication:
-      "NEAREST_EVENT_PER_RELEASE_FAMILY",
+    errors,
 
     reasons:
       analysis.reasons,
 
-    errors,
+    methodology:
+      "Only the nearest upcoming event per FRED release family contributes. FOMC dates are maintained separately from FRED release dates.",
 
     messageCN:
-      analysis.risk === "HIGH"
-        ? "近期存在高影响经济事件，需要提高风险控制"
-        : analysis.risk === "MEDIUM"
-          ? "近期经济事件风险需要关注"
-          : "近期经济事件风险相对有限",
-
-    noteCN:
-      "FRED发布日期与FOMC政策会议分开处理。事件日期只用于风险监控，不代表市场必然产生特定方向反应。"
+      "经济事件已按发布系列去重；FOMC会议日期独立处理。"
   };
 }
 
 /* =========================================================
-   MULTI-SOURCE GEOPOLITICAL INTELLIGENCE
+   GEOPOLITICAL INTELLIGENCE
 ========================================================= */
 
-function geoUnknown(
-  reason,
-  errors = [],
-  status =
-    "DATA_DEGRADED"
-) {
+const GEO_CATEGORIES = {
+  WAR: {
+    weight: 3,
+
+    words: [
+      "war",
+      "military",
+      "missile",
+      "missiles",
+      "invasion",
+      "airstrike",
+      "air strike",
+      "attack",
+      "attacks",
+      "conflict",
+      "drone strike",
+      "ceasefire"
+    ]
+  },
+
+  SANCTIONS: {
+    weight: 2,
+
+    words: [
+      "sanction",
+      "sanctions",
+      "embargo",
+      "asset freeze"
+    ]
+  },
+
+  ENERGY: {
+    weight: 2,
+
+    words: [
+      "oil",
+      "opec",
+      "pipeline",
+      "energy supply",
+      "crude oil",
+      "natural gas"
+    ]
+  },
+
+  TRADE: {
+    weight: 2,
+
+    words: [
+      "tariff",
+      "tariffs",
+      "trade war",
+      "export control",
+      "export controls",
+      "trade restrictions"
+    ]
+  },
+
+  SHIPPING: {
+    weight: 3,
+
+    words: [
+      "red sea",
+      "strait of hormuz",
+      "suez canal",
+      "shipping",
+      "shipping route",
+      "shipping routes",
+      "vessel attack"
+    ]
+  }
+};
+
+const GOOGLE_GEO_QUERY =
+  '("war" OR "military" OR "missile" OR "sanctions" OR "tariff" OR "Red Sea" OR "Strait of Hormuz" OR "Suez Canal" OR "OPEC" OR "oil supply") when:1d';
+
+const GDELT_QUERY =
+  '(war OR military OR missile OR sanctions OR embargo OR tariff OR "trade war" OR "Red Sea" OR "Strait of Hormuz" OR "Suez Canal" OR OPEC OR pipeline)';
+
+function geoGroups(items) {
+  const groups = [];
+
+  let score = 0;
+
+  for (
+    const [
+      name,
+      config
+    ] of
+    Object.entries(
+      GEO_CATEGORIES
+    )
+  ) {
+    let matches = 0;
+
+    const headlines = [];
+
+    for (
+      const item of
+      items
+    ) {
+      const text =
+        normalizeTitle(
+          item.title
+        );
+
+      const hit =
+        config.words.some(
+          word =>
+            text.includes(
+              normalizeTitle(
+                word
+              )
+            )
+        );
+
+      if (hit) {
+        matches++;
+
+        if (
+          headlines.length < 3
+        ) {
+          headlines.push(
+            item.title
+          );
+        }
+      }
+    }
+
+    if (matches > 0) {
+      const contribution =
+        Math.min(
+          config.weight * 2,
+          config.weight +
+          Math.floor(
+            (matches - 1) / 2
+          )
+        );
+
+      score +=
+        contribution;
+
+      groups.push({
+        category:
+          name,
+
+        matches,
+
+        weight:
+          config.weight,
+
+        contribution,
+
+        headlines
+      });
+    }
+  }
+
   return {
-    ok: false,
-
-    status,
-
-    dataAvailable:
-      false,
-
-    source:
-      "MULTI_SOURCE",
-
-    risk:
-      "UNKNOWN",
-
-    score:
-      null,
-
-    confidence:
-      0,
-
-    sourceCount:
-      0,
-
-    articleCount:
-      0,
-
-    reason,
-
-    reasons: [
-      reason
-    ],
-
-    groups:
-      [],
-
-    headlines:
-      [],
-
-    sources:
-      [],
-
-    errors:
-      Array.isArray(errors)
-        ? errors
-        : [String(errors)],
-
-    messageCN:
-      "地缘政治情报源暂时不足，因此风险保持未知，不会被错误判断为低风险。",
-
-    methodology:
-      "Unavailable geopolitical intelligence is UNKNOWN, never LOW."
+    groups,
+    rawScore:
+      score
   };
 }
 
-async function googleNewsGeo(
-  timeout = 3500
+function analyzeGeo(
+  items,
+  sourceCount
 ) {
-  const params =
-    new URLSearchParams({
-      q:
-        GOOGLE_GEO_QUERY,
+  const uniquePublishers =
+    new Set(
+      items
+        .map(
+          x =>
+            String(
+              x.publisher ||
+              ""
+            ).trim()
+        )
+        .filter(Boolean)
+    );
 
-      hl:
-        "en-US",
+  const grouped =
+    geoGroups(items);
 
-      gl:
-        "US",
+  let score =
+    clamp(
+      grouped.rawScore,
+      0,
+      10
+    );
 
-      ceid:
-        "US:en"
-    });
+  const articleCount =
+    items.length;
 
+  const publisherCount =
+    uniquePublishers.size;
+
+  let confidence = 25;
+
+  confidence +=
+    Math.min(
+      30,
+      articleCount * 3
+    );
+
+  confidence +=
+    Math.min(
+      25,
+      publisherCount * 5
+    );
+
+  confidence +=
+    Math.min(
+      20,
+      Math.max(
+        0,
+        sourceCount - 1
+      ) * 10
+    );
+
+  confidence =
+    clamp(
+      confidence,
+      0,
+      100
+    );
+
+  let risk =
+    score >= 7
+      ? "HIGH"
+      : score >= 4
+        ? "MEDIUM"
+        : "LOW";
+
+  /*
+    LOW requires enough evidence.
+    Insufficient evidence is UNKNOWN.
+  */
+  if (
+    risk === "LOW" &&
+    (
+      articleCount < 3 ||
+      publisherCount < 2 ||
+      confidence < 50
+    )
+  ) {
+    risk =
+      "UNKNOWN";
+  }
+
+  const reasons = [];
+
+  if (
+    risk === "HIGH"
+  ) {
+    reasons.push(
+      "多来源新闻出现较强的战争、制裁、能源、贸易或航运风险信号"
+    );
+
+  } else if (
+    risk === "MEDIUM"
+  ) {
+    reasons.push(
+      "多来源新闻显示需要关注的地缘政治风险"
+    );
+
+  } else if (
+    risk === "LOW"
+  ) {
+    reasons.push(
+      "现有多来源新闻未显示明显高风险升级，并且数据覆盖达到最低置信要求"
+    );
+
+  } else {
+    reasons.push(
+      "地缘政治新闻覆盖或独立来源不足，因此风险保持未知"
+    );
+  }
+
+  return {
+    risk,
+    score,
+    confidence,
+    publisherCount,
+    groups:
+      grouped.groups,
+    reasons
+  };
+}
+
+function dedupeArticles(items) {
+  const map =
+    new Map();
+
+  for (
+    const item of
+    items
+  ) {
+    const key =
+      normalizeTitle(
+        item.title
+      );
+
+    if (
+      !key ||
+      map.has(key)
+    ) {
+      continue;
+    }
+
+    map.set(
+      key,
+      item
+    );
+  }
+
+  return [
+    ...map.values()
+  ];
+}
+
+async function googleGeo(
+  timeout
+) {
   const url =
-    `https://news.google.com/rss/search?${params}`;
+    "https://news.google.com/rss/search?" +
+    new URLSearchParams({
+      q: GOOGLE_GEO_QUERY,
+      hl: "en-US",
+      gl: "US",
+      ceid: "US:en"
+    });
 
   const xml =
     await getText(
@@ -1433,35 +1817,24 @@ async function googleNewsGeo(
       timeout
     );
 
-  const items =
+  const articles =
     parseRSS(
       xml,
       "Google News"
     );
 
-  if (!items.length) {
+  if (!articles.length) {
     throw new Error(
-      "Google News returned no usable RSS items"
+      "NO_ARTICLES"
     );
   }
 
-  return {
-    source:
-      "Google News",
-
-    ok:
-      true,
-
-    items:
-      items.slice(
-        0,
-        30
-      )
-  };
+  return articles
+    .slice(0, 30);
 }
 
 async function gdeltGeo(
-  timeout = 2200
+  timeout
 ) {
   const params =
     new URLSearchParams({
@@ -1472,16 +1845,13 @@ async function gdeltGeo(
         "ArtList",
 
       maxrecords:
-        "20",
+        "25",
 
       format:
         "json",
 
       sort:
-        "DateDesc",
-
-      timespan:
-        "24h"
+        "HybridRel"
     });
 
   const data =
@@ -1490,19 +1860,10 @@ async function gdeltGeo(
       timeout
     );
 
-  if (
-    !Array.isArray(
-      data?.articles
+  const articles =
+    (
+      data.articles || []
     )
-  ) {
-    throw new Error(
-      "GDELT returned no usable dataset"
-    );
-  }
-
-  const items =
-    data.articles
-      .slice(0, 20)
       .map(
         x => ({
           title:
@@ -1514,10 +1875,13 @@ async function gdeltGeo(
             x.url || null,
 
           publisher:
-            x.domain || "GDELT",
+            x.domain ||
+            x.sourcecountry ||
+            "GDELT",
 
           published:
-            x.seendate || null,
+            x.seendate ||
+            null,
 
           feedSource:
             "GDELT"
@@ -1527,456 +1891,120 @@ async function gdeltGeo(
         x => x.title
       );
 
-  if (!items.length) {
+  if (!articles.length) {
     throw new Error(
-      "GDELT returned no usable headlines"
+      "NO_ARTICLES"
     );
   }
 
-  return {
-    source:
-      "GDELT",
-
-    ok:
-      true,
-
-    items
-  };
+  return articles;
 }
 
-function dedupeGeoArticles(
-  articles
+async function liveGeopoliticalData(
+  fast = false
 ) {
-  const seen =
-    new Set();
-
-  const output = [];
-
-  for (
-    const article of
-    articles
-  ) {
-    const normalized =
-      normalizeTitle(
-        article.title
-      );
-
-    if (!normalized) {
-      continue;
-    }
-
-    /*
-      Remove obvious exact/near-exact feed duplicates.
-      First 120 normalized chars are sufficient for
-      basic RSS duplicate protection.
-    */
-    const key =
-      normalized.slice(
-        0,
-        120
-      );
-
-    if (
-      seen.has(key)
-    ) {
-      continue;
-    }
-
-    seen.add(key);
-
-    output.push({
-      ...article,
-      normalizedTitle:
-        normalized
-    });
-  }
-
-  return output;
-}
-
-function classifyGeoArticle(
-  article
-) {
-  const text =
-    normalizeTitle(
-      article.title
-    );
-
-  const categories = [];
-
-  for (
-    const [
-      key,
-      config
-    ] of Object.entries(
-      GEO_CATEGORIES
-    )
-  ) {
-    if (
-      config.words.some(
-        word =>
-          text.includes(
-            word
-          )
-      )
-    ) {
-      categories.push(
-        key
-      );
-    }
-  }
-
-  return {
-    ...article,
-    categories
-  };
-}
-
-function geopoliticalAnalysis(
-  articles,
-  successfulSources
-) {
-  const classified =
-    articles.map(
-      classifyGeoArticle
-    );
-
-  const groups = {};
-
-  for (
-    const [
-      key,
-      config
-    ] of Object.entries(
-      GEO_CATEGORIES
-    )
-  ) {
-    groups[key] = {
-      id:
-        key,
-
-      count:
-        0,
-
-      publishers:
-        new Set(),
-
-      feedSources:
-        new Set(),
-
-      weight:
-        config.weight
-    };
-  }
-
-  for (
-    const article of
-    classified
-  ) {
-    for (
-      const category of
-      article.categories
-    ) {
-      groups[category]
-        .count++;
-
-      if (
-        article.publisher
-      ) {
-        groups[category]
-          .publishers
-          .add(
-            article.publisher
-          );
-      }
-
-      if (
-        article.feedSource
-      ) {
-        groups[category]
-          .feedSources
-          .add(
-            article.feedSource
-          );
-      }
-    }
-  }
-
-  let score = 0;
-
-  const reasons = [];
-
-  const outputGroups = [];
-
-  for (
-    const group of
-    Object.values(groups)
-  ) {
-    const publisherCount =
-      group.publishers.size;
-
-    const feedSourceCount =
-      group.feedSources.size;
-
-    let contribution = 0;
-
-    if (
-      group.count >= 8 &&
-      publisherCount >= 3
-    ) {
-      contribution =
-        group.weight;
-
-    } else if (
-      group.count >= 4 &&
-      publisherCount >= 2
-    ) {
-      contribution =
-        Math.max(
-          1,
-          group.weight - 1
-        );
-
-    } else if (
-      group.count >= 2
-    ) {
-      contribution = 1;
-    }
-
-    /*
-      Single-feed-source protection:
-      one feed alone cannot generate an aggressive
-      geopolitical HIGH classification.
-    */
-    if (
-      successfulSources <= 1
-    ) {
-      contribution =
-        Math.min(
-          contribution,
-          1
-        );
-    }
-
-    score +=
-      contribution;
-
-    if (
-      group.count >= 2
-    ) {
-      reasons.push(
-        `${group.id}: ${group.count} headlines · ${publisherCount} publishers`
-      );
-    }
-
-    outputGroups.push({
-      id:
-        group.id,
-
-      count:
-        group.count,
-
-      publisherCount,
-
-      feedSourceCount,
-
-      weight:
-        group.weight,
-
-      contribution
-    });
-  }
-
-  score =
-    clamp(
-      score,
-      0,
-      10
-    );
-
-  let risk =
-    score >= 7
-      ? "HIGH"
-      : score >= 3
-        ? "MEDIUM"
-        : "LOW";
+  const errors = [];
+  const sources = [];
+  const articles = [];
 
   /*
-    One feed source is not enough to classify HIGH.
+    Fast mode is used by /intelligence.
+    Standalone /geopolitical gets slightly longer time.
   */
-  if (
-    successfulSources <= 1 &&
-    risk === "HIGH"
-  ) {
-    risk =
-      "MEDIUM";
-  }
-
-  const publisherSet =
-    new Set(
-      classified
-        .map(
-          x => x.publisher
-        )
-        .filter(Boolean)
-    );
-
-  let confidence = 0;
-
-  if (
-    successfulSources >= 2
-  ) {
-    confidence += 35;
-
-  } else if (
-    successfulSources === 1
-  ) {
-    confidence += 20;
-  }
-
-  if (
-    classified.length >= 20
-  ) {
-    confidence += 30;
-
-  } else if (
-    classified.length >= 10
-  ) {
-    confidence += 20;
-
-  } else if (
-    classified.length >= 5
-  ) {
-    confidence += 10;
-  }
-
-  if (
-    publisherSet.size >= 6
-  ) {
-    confidence += 30;
-
-  } else if (
-    publisherSet.size >= 3
-  ) {
-    confidence += 20;
-
-  } else if (
-    publisherSet.size >= 2
-  ) {
-    confidence += 10;
-  }
-
-  confidence =
-    clamp(
-      confidence,
-      0,
-      95
-    );
-
-  return {
-    risk,
-    score,
-    confidence,
-
-    reasons,
-
-    groups:
-      outputGroups,
-
-    publisherCount:
-      publisherSet.size,
-
-    classified
-  };
-}
-
-async function geopoliticalData(
-  options = {}
-) {
-  const fast =
-    Boolean(
-      options.fast
-    );
-
   const googleTimeout =
     fast
-      ? 1800
-      : 3500;
+      ? 1700
+      : 4200;
 
   const gdeltTimeout =
     fast
       ? 1200
-      : 2200;
+      : 3500;
 
-  const sourceResults =
-    await Promise.allSettled([
-      googleNewsGeo(
+  try {
+    const google =
+      await googleGeo(
         googleTimeout
-      ),
-
-      gdeltGeo(
-        gdeltTimeout
-      )
-    ]);
-
-  const articles = [];
-
-  const sources = [];
-
-  const errors = [];
-
-  for (
-    const result of
-    sourceResults
-  ) {
-    if (
-      result.status ===
-      "fulfilled"
-    ) {
-      sources.push({
-        source:
-          result.value.source,
-
-        status:
-          "OK",
-
-        articleCount:
-          result.value.items.length
-      });
-
-      articles.push(
-        ...result.value.items
       );
 
-    } else {
-      const message =
-        result.reason?.message ||
-        String(
-          result.reason
-        );
+    articles.push(
+      ...google
+    );
 
-      errors.push(
-        message
-      );
+    sources.push({
+      name:
+        "Google News RSS",
 
-      sources.push({
-        source:
-          message.includes(
-            "GDELT"
-          )
-            ? "GDELT"
-            : "NEWS_SOURCE",
+      status:
+        "OK",
 
-        status:
-          message === "TIMEOUT"
-            ? "TIMEOUT"
-            : "UNAVAILABLE",
+      articleCount:
+        google.length
+    });
 
-        error:
-          message
-      });
-    }
+  } catch (err) {
+    errors.push(
+      `GOOGLE_NEWS: ${
+        err?.message ||
+        String(err)
+      }`
+    );
+
+    sources.push({
+      name:
+        "Google News RSS",
+
+      status:
+        "UNAVAILABLE"
+    });
   }
+
+  /*
+    GDELT acts as cross-validation / fallback.
+    In fast mode it is attempted only if time permits.
+  */
+  try {
+    const gdelt =
+      await gdeltGeo(
+        gdeltTimeout
+      );
+
+    articles.push(
+      ...gdelt
+    );
+
+    sources.push({
+      name:
+        "GDELT",
+
+      status:
+        "OK",
+
+      articleCount:
+        gdelt.length
+    });
+
+  } catch (err) {
+    errors.push(
+      `GDELT: ${
+        err?.message ||
+        String(err)
+      }`
+    );
+
+    sources.push({
+      name:
+        "GDELT",
+
+      status:
+        "UNAVAILABLE"
+    });
+  }
+
+  const unique =
+    dedupeArticles(
+      articles
+    );
 
   const successfulSources =
     sources.filter(
@@ -1985,32 +2013,23 @@ async function geopoliticalData(
     ).length;
 
   if (
-    successfulSources === 0
-  ) {
-    return geoUnknown(
-      "All geopolitical intelligence sources are unavailable. Risk remains UNKNOWN.",
-      errors,
-      "DATA_UNAVAILABLE"
-    );
-  }
-
-  const unique =
-    dedupeGeoArticles(
-      articles
-    );
-
-  if (
-    unique.length < 3
+    !successfulSources ||
+    !unique.length
   ) {
     return {
-      ok:
-        true,
+      ok: false,
 
       status:
-        "LIMITED_DATA",
+        "DATA_UNAVAILABLE",
 
       dataAvailable:
-        true,
+        false,
+
+      live:
+        false,
+
+      cacheUsed:
+        false,
 
       source:
         "MULTI_SOURCE",
@@ -2022,134 +2041,39 @@ async function geopoliticalData(
         null,
 
       confidence:
-        20,
+        0,
 
       sourceCount:
-        successfulSources,
+        0,
 
       articleCount:
-        unique.length,
+        0,
 
       reasons: [
-        "Insufficient geopolitical news sample."
+        "All live geopolitical intelligence sources are unavailable."
       ],
 
-      groups:
-        [],
-
-      headlines:
-        unique.slice(
-          0,
-          10
-        ),
-
+      groups: [],
+      headlines: [],
       sources,
-
       errors,
 
       messageCN:
-        "地缘政治新闻样本不足，因此风险保持未知。",
+        "实时地缘政治情报源暂时不可用。",
 
       methodology:
-        "Insufficient intelligence is UNKNOWN, never LOW."
+        "Unavailable geopolitical intelligence is UNKNOWN, never LOW."
     };
   }
 
   const analysis =
-    geopoliticalAnalysis(
+    analyzeGeo(
       unique,
       successfulSources
     );
 
-  /*
-    LOW requires reasonable evidence.
-    A tiny or weak sample cannot be used to assert LOW.
-  */
-  if (
-    analysis.risk === "LOW" &&
-    analysis.confidence < 40
-  ) {
-    return {
-      ok:
-        true,
-
-      status:
-        "LOW_CONFIDENCE",
-
-      dataAvailable:
-        true,
-
-      source:
-        "MULTI_SOURCE",
-
-      risk:
-        "UNKNOWN",
-
-      score:
-        analysis.score,
-
-      confidence:
-        analysis.confidence,
-
-      sourceCount:
-        successfulSources,
-
-      articleCount:
-        unique.length,
-
-      publisherCount:
-        analysis.publisherCount,
-
-      reasons:
-        analysis.reasons.length
-          ? analysis.reasons
-          : [
-              "Available news sample is insufficient to confirm LOW geopolitical risk."
-            ],
-
-      groups:
-        analysis.groups,
-
-      headlines:
-        unique
-          .slice(
-            0,
-            10
-          )
-          .map(
-            x => ({
-              title:
-                x.title,
-
-              url:
-                x.url,
-
-              publisher:
-                x.publisher,
-
-              feedSource:
-                x.feedSource,
-
-              published:
-                x.published
-            })
-          ),
-
-      sources,
-
-      errors,
-
-      messageCN:
-        "现有新闻样本不足以确认低地缘政治风险，因此保持未知。",
-
-      methodology:
-        "LOW geopolitical risk requires minimum confidence. Otherwise risk remains UNKNOWN."
-    };
-  }
-
   return {
-    ok:
-      true,
+    ok: true,
 
     status:
       errors.length
@@ -2158,6 +2082,12 @@ async function geopoliticalData(
 
     dataAvailable:
       true,
+
+    live:
+      true,
+
+    cacheUsed:
+      false,
 
     source:
       "MULTI_SOURCE",
@@ -2188,10 +2118,7 @@ async function geopoliticalData(
 
     headlines:
       unique
-        .slice(
-          0,
-          10
-        )
+        .slice(0, 10)
         .map(
           x => ({
             title:
@@ -2212,7 +2139,6 @@ async function geopoliticalData(
         ),
 
     sources,
-
     errors,
 
     messageCN:
@@ -2220,10 +2146,151 @@ async function geopoliticalData(
         ? "多来源新闻显示全球地缘政治风险较高"
         : analysis.risk === "MEDIUM"
           ? "多来源新闻显示地缘政治风险需要关注"
-          : "现有多来源新闻未显示明显高地缘政治风险",
+          : analysis.risk === "LOW"
+            ? "现有多来源新闻未显示明显高地缘政治风险"
+            : "当前情报覆盖不足，地缘政治风险保持未知",
 
     methodology:
-      "Multi-source geopolitical monitor. Independent-source confirmation increases confidence. Geopolitical news never independently creates BUY or SELL signals."
+      "Multi-source geopolitical monitor. LOW requires minimum confidence and independent publisher coverage. Geopolitical news never independently creates BUY or SELL signals."
+  };
+}
+
+async function geopoliticalData(
+  env,
+  options = {}
+) {
+  const fast =
+    Boolean(
+      options.fast
+    );
+
+  const live =
+    await liveGeopoliticalData(
+      fast
+    );
+
+  /*
+    Reliable live result:
+    save to persistent KV.
+  */
+  if (
+    live.ok &&
+    live.dataAvailable &&
+    live.risk !== "UNKNOWN"
+  ) {
+    const stored =
+      await saveGeoCache(
+        env,
+        live
+      );
+
+    return {
+      ...live,
+
+      kvCache:
+        stored
+          ? "UPDATED"
+          : env.INTEL_KV
+            ? "WRITE_FAILED"
+            : "NOT_BOUND"
+    };
+  }
+
+  /*
+    Live data exists but confidence is insufficient.
+    We do NOT overwrite a previous reliable cache.
+  */
+  if (
+    live.ok &&
+    live.dataAvailable &&
+    live.risk === "UNKNOWN"
+  ) {
+    const cached =
+      await loadGeoCache(
+        env
+      );
+
+    if (cached) {
+      return {
+        ...cached,
+
+        liveAttemptStatus:
+          live.status,
+
+        liveAttemptRisk:
+          "UNKNOWN",
+
+        liveAttemptConfidence:
+          live.confidence,
+
+        liveErrors:
+          live.errors,
+
+        fallbackReason:
+          "LIVE_CONFIDENCE_INSUFFICIENT"
+      };
+    }
+
+    return {
+      ...live,
+
+      kvCache:
+        env.INTEL_KV
+          ? "NO_RELIABLE_CACHE"
+          : "NOT_BOUND"
+    };
+  }
+
+  /*
+    Live sources unavailable:
+    try persistent KV.
+  */
+  const cached =
+    await loadGeoCache(
+      env
+    );
+
+  if (cached) {
+    return {
+      ...cached,
+
+      liveAttemptStatus:
+        live.status,
+
+      liveErrors:
+        live.errors,
+
+      fallbackReason:
+        "LIVE_SOURCES_UNAVAILABLE"
+    };
+  }
+
+  /*
+    No live data + no acceptable cache.
+    UNKNOWN is mandatory.
+  */
+  return {
+    ...live,
+
+    kvCache:
+      env.INTEL_KV
+        ? "EMPTY_OR_EXPIRED"
+        : "NOT_BOUND",
+
+    risk:
+      "UNKNOWN",
+
+    score:
+      null,
+
+    confidence:
+      0,
+
+    messageCN:
+      "实时地缘政治来源不可用，并且没有可使用的可靠缓存，因此风险保持未知，不会被错误判断为低风险。",
+
+    methodology:
+      "No live intelligence and no acceptable KV cache. Risk is UNKNOWN, never LOW."
   };
 }
 
@@ -2259,13 +2326,17 @@ function quality(
   }
 
   if (
-    geo?.ok &&
     geo?.dataAvailable &&
     geo.risk !== "UNKNOWN"
   ) {
+    const geoWeight =
+      geo.cacheUsed
+        ? 10
+        : 15;
+
     confidence +=
       Math.round(
-        15 *
+        geoWeight *
         (geo.confidence || 0) /
         100
       );
@@ -2313,6 +2384,13 @@ function quality(
     geopoliticalConfidence:
       geo?.confidence ?? 0,
 
+    geopoliticalCache:
+      geo?.cacheUsed
+        ? "KV_CACHE"
+        : geo?.live
+          ? "LIVE"
+          : "NONE",
+
     messageCN:
       status === "OK"
         ? "数据质量良好"
@@ -2326,7 +2404,7 @@ function quality(
 }
 
 /* =========================================================
-   GLOBAL RISK FUSION V4.7.1
+   GLOBAL RISK FUSION
 ========================================================= */
 
 function fusion(
@@ -2342,7 +2420,7 @@ function fusion(
 
   if (
     context.regime ===
-    "RISK_OFF"
+      "RISK_OFF"
   ) {
     score += 2;
 
@@ -2353,14 +2431,14 @@ function fusion(
 
   if (
     context.regime ===
-    "RISK_ON"
+      "RISK_ON"
   ) {
     score--;
   }
 
   if (
     macro?.regime ===
-    "RISK_OFF"
+      "RISK_OFF"
   ) {
     score += 3;
 
@@ -2371,14 +2449,14 @@ function fusion(
 
   if (
     macro?.regime ===
-    "RISK_ON"
+      "RISK_ON"
   ) {
     score--;
   }
 
   if (
     events?.risk ===
-    "HIGH"
+      "HIGH"
   ) {
     score += 3;
 
@@ -2388,7 +2466,7 @@ function fusion(
 
   } else if (
     events?.risk ===
-    "MEDIUM"
+      "MEDIUM"
   ) {
     score++;
 
@@ -2399,27 +2477,31 @@ function fusion(
 
   if (
     geo?.risk ===
-    "HIGH"
+      "HIGH"
   ) {
     score += 2;
 
     reasons.push(
-      "多来源地缘政治情报显示较高风险"
+      geo.cacheUsed
+        ? "最近可靠缓存显示较高地缘政治风险"
+        : "多来源地缘政治情报显示较高风险"
     );
 
   } else if (
     geo?.risk ===
-    "MEDIUM"
+      "MEDIUM"
   ) {
     score++;
 
     reasons.push(
-      "地缘政治风险需要关注"
+      geo.cacheUsed
+        ? "最近可靠缓存显示地缘政治风险需要关注"
+        : "地缘政治风险需要关注"
     );
 
   } else if (
     geo?.risk ===
-    "UNKNOWN"
+      "UNKNOWN"
   ) {
     reasons.push(
       "地缘政治风险未知，不采用低风险假设"
@@ -2440,14 +2522,11 @@ function fusion(
         ? "MEDIUM"
         : "LOW";
 
-  /*
-    V4.7.1 semantic safety:
-    if an important geopolitical component is UNKNOWN,
-    the overall risk must not simply display LOW.
-  */
   const risk =
-    geo?.risk === "UNKNOWN" &&
-    knownRiskLevel === "LOW"
+    geo?.risk ===
+      "UNKNOWN" &&
+    knownRiskLevel ===
+      "LOW"
       ? "UNCERTAIN"
       : knownRiskLevel;
 
@@ -2477,7 +2556,8 @@ function fusion(
       "CAUTION_ONLY";
 
   } else if (
-    geo?.risk === "UNKNOWN"
+    geo?.risk === "UNKNOWN" ||
+    geo?.cacheUsed
   ) {
     signalPermission =
       "REDUCED_CONFIDENCE";
@@ -2491,6 +2571,13 @@ function fusion(
     geopoliticalRisk:
       geo?.risk ||
       "UNKNOWN",
+
+    geopoliticalDataMode:
+      geo?.cacheUsed
+        ? "KV_CACHE"
+        : geo?.live
+          ? "LIVE"
+          : "UNKNOWN",
 
     riskScore:
       score,
@@ -2516,7 +2603,7 @@ function fusion(
 
     messageCN:
       risk === "UNCERTAIN"
-        ? "已知风险暂时较低，但地缘政治情报不足，因此总体状态保持不确定并降低信号置信度"
+        ? "已知风险暂时较低，但部分关键情报不足，因此总体状态保持不确定"
         : risk === "HIGH"
           ? "综合风险较高，应优先控制风险并等待更清晰确认"
           : risk === "MEDIUM"
@@ -2610,7 +2697,7 @@ function decisionContext(
 
   if (
     context.relativeStrength ===
-    "WEAK"
+      "WEAK"
   ) {
     bear += 2;
 
@@ -2621,7 +2708,7 @@ function decisionContext(
 
   if (
     context.relativeStrength ===
-    "STRONG"
+      "STRONG"
   ) {
     bull += 2;
 
@@ -2632,7 +2719,7 @@ function decisionContext(
 
   if (
     macro?.regime ===
-    "RISK_OFF"
+      "RISK_OFF"
   ) {
     bear += 2;
 
@@ -2643,7 +2730,7 @@ function decisionContext(
 
   if (
     macro?.regime ===
-    "RISK_ON"
+      "RISK_ON"
   ) {
     bull++;
   }
@@ -2690,43 +2777,49 @@ function decisionContext(
   let entryQuality = 70;
 
   if (
-    chaseRisk ===
-    "MEDIUM"
+    chaseRisk === "MEDIUM"
   ) {
     entryQuality -= 20;
   }
 
   if (
-    chaseRisk ===
-    "HIGH"
+    chaseRisk === "HIGH"
   ) {
     entryQuality -= 40;
   }
 
   if (
     globalRisk.knownRiskLevel ===
-    "HIGH"
+      "HIGH"
   ) {
     entryQuality -= 20;
   }
 
   if (
     globalRisk.knownRiskLevel ===
-    "MEDIUM"
+      "MEDIUM"
   ) {
     entryQuality -= 10;
   }
 
   if (
-    geo?.risk ===
-    "UNKNOWN"
+    geo?.risk === "UNKNOWN"
   ) {
     entryQuality -= 5;
   }
 
   if (
-    events?.risk ===
-    "HIGH"
+    geo?.cacheUsed
+  ) {
+    entryQuality -= 5;
+
+    reasons.push(
+      "地缘政治模块正在使用缓存数据，入场置信度已降低"
+    );
+  }
+
+  if (
+    events?.risk === "HIGH"
   ) {
     entryQuality -= 10;
   }
@@ -2748,8 +2841,10 @@ function decisionContext(
     trend === "BULLISH" &&
     setup >= 70 &&
     entryQuality >= 70 &&
-    globalRisk.knownRiskLevel !== "HIGH" &&
-    globalRisk.signalPermission === "NORMAL"
+    globalRisk.knownRiskLevel !==
+      "HIGH" &&
+    globalRisk.signalPermission ===
+      "NORMAL"
   ) {
     action =
       "BULLISH SETUP";
@@ -2762,8 +2857,10 @@ function decisionContext(
     trend === "BEARISH" &&
     setup >= 70 &&
     entryQuality >= 70 &&
-    globalRisk.knownRiskLevel !== "HIGH" &&
-    globalRisk.signalPermission === "NORMAL"
+    globalRisk.knownRiskLevel !==
+      "HIGH" &&
+    globalRisk.signalPermission ===
+      "NORMAL"
   ) {
     action =
       "BEARISH SETUP";
@@ -2784,7 +2881,7 @@ function decisionContext(
 
   if (
     globalRisk.signalPermission ===
-    "CAUTION_ONLY"
+      "CAUTION_ONLY"
   ) {
     action =
       "WAIT FOR CONFIRMATION";
@@ -2795,7 +2892,7 @@ function decisionContext(
 
   if (
     globalRisk.signalPermission ===
-    "REDUCED_CONFIDENCE" &&
+      "REDUCED_CONFIDENCE" &&
     (
       action ===
         "BULLISH SETUP" ||
@@ -2849,8 +2946,7 @@ const marketFallback = {
     regime:
       "UNKNOWN",
 
-    score:
-      0,
+    score: 0,
 
     relativeStrength:
       "UNKNOWN"
@@ -2885,8 +2981,7 @@ const eventsFallback = {
   score:
     null,
 
-  events:
-    [],
+  events: [],
 
   messageCN:
     "综合分析时间预算内未完成事件数据读取，风险保持未知。"
@@ -2923,14 +3018,9 @@ const geoFallback = {
     "Geopolitical intelligence exceeded the intelligence time budget."
   ],
 
-  groups:
-    [],
-
-  headlines:
-    [],
-
-  sources:
-    [],
+  groups: [],
+  headlines: [],
+  sources: [],
 
   errors: [
     "TIME_BUDGET_EXCEEDED"
@@ -2983,12 +3073,15 @@ async function intelligence(env) {
     ]),
 
     Promise.race([
-      geopoliticalData({
-        fast: true
-      }),
+      geopoliticalData(
+        env,
+        {
+          fast: true
+        }
+      ),
 
       timeoutValue(
-        3200,
+        4000,
         geoFallback
       )
     ])
@@ -3046,7 +3139,7 @@ async function intelligence(env) {
       VERSION,
 
     mission:
-      "V4.7.1 Multi-Source Geopolitical Intelligence",
+      "V4.7.2 Persistent KV Intelligence Cache",
 
     language:
       "zh-CN",
@@ -3069,16 +3162,13 @@ async function intelligence(env) {
       marketResult.context,
 
     decision,
-
     macro,
-
     events,
 
     geopolitical:
       geo,
 
     dataQuality,
-
     globalRisk,
 
     disclaimerCN:
@@ -3095,8 +3185,7 @@ async function intelligence(env) {
 
 function status(env) {
   return {
-    ok:
-      true,
+    ok: true,
 
     service:
       "ZEC AI Intelligence",
@@ -3105,7 +3194,7 @@ function status(env) {
       VERSION,
 
     mission:
-      "V4.7.1 Multi-Source Geopolitical Intelligence",
+      "V4.7.2 Persistent KV Intelligence Cache",
 
     status:
       "ONLINE",
@@ -3146,13 +3235,23 @@ function status(env) {
         "ACTIVE · PRIMARY AGGREGATION",
 
       gdeltGeopolitical:
-        "ACTIVE · FALLBACK",
+        "ACTIVE · CROSS VALIDATION",
 
       geopoliticalEngine:
         "ACTIVE · MULTI-SOURCE",
 
       geopoliticalCrossValidation:
         "ACTIVE",
+
+      persistentIntelligenceCache:
+        env.INTEL_KV
+          ? "ACTIVE · KV"
+          : "NOT BOUND",
+
+      staleCacheFallback:
+        env.INTEL_KV
+          ? "ACTIVE"
+          : "NOT BOUND",
 
       dataQualityEngine:
         "ACTIVE",
@@ -3181,19 +3280,25 @@ function status(env) {
         "SEPARATE FROM FRED RELEASE DATES",
 
       geopoliticalArchitecture:
-        "MULTI_SOURCE",
+        "MULTI_SOURCE_WITH_KV_CACHE",
 
       geopoliticalPrimary:
         "GOOGLE_NEWS_RSS_AGGREGATION",
 
-      geopoliticalFallback:
+      geopoliticalCrossValidation:
         "GDELT",
+
+      geopoliticalCache:
+        "CLOUDFLARE_KV_LAST_RELIABLE",
+
+      geopoliticalCacheMaxAgeHours:
+        6,
 
       geopoliticalLowRequiresConfidence:
         true,
 
       geopoliticalFailure:
-        "UNKNOWN",
+        "KV_CACHE_THEN_UNKNOWN",
 
       unavailableRisk:
         "UNKNOWN",
@@ -3213,8 +3318,13 @@ function status(env) {
         env.FRED_API_KEY
       ),
 
+    intelKVConfigured:
+      Boolean(
+        env.INTEL_KV
+      ),
+
     messageCN:
-      "ZEC AI Intelligence V4.7.1运行正常",
+      "ZEC AI Intelligence V4.7.2运行正常",
 
     timestamp:
       new Date()
@@ -3223,6 +3333,120 @@ function status(env) {
     disclaimerCN:
       "仅用于市场研究及模拟分析，不构成投资建议。"
   };
+}
+
+/* =========================================================
+   KV TEST
+========================================================= */
+
+async function kvTest(env) {
+  if (!env.INTEL_KV) {
+    return {
+      ok: false,
+
+      version:
+        VERSION,
+
+      binding:
+        "INTEL_KV",
+
+      status:
+        "NOT_BOUND",
+
+      messageCN:
+        "INTEL_KV尚未绑定。"
+    };
+  }
+
+  const key =
+    "system:kv-test";
+
+  const payload = {
+    version:
+      VERSION,
+
+    timestamp:
+      new Date()
+        .toISOString(),
+
+    test:
+      "KV_READ_WRITE"
+  };
+
+  try {
+    await env.INTEL_KV.put(
+      key,
+      JSON.stringify(
+        payload
+      ),
+      {
+        expirationTtl:
+          3600
+      }
+    );
+
+    const raw =
+      await env.INTEL_KV.get(
+        key
+      );
+
+    const result =
+      raw
+        ? JSON.parse(raw)
+        : null;
+
+    return {
+      ok:
+        Boolean(result),
+
+      version:
+        VERSION,
+
+      binding:
+        "INTEL_KV",
+
+      status:
+        result
+          ? "OK"
+          : "READ_FAILED",
+
+      write:
+        "OK",
+
+      read:
+        result
+          ? "OK"
+          : "FAILED",
+
+      result,
+
+      messageCN:
+        result
+          ? "KV读写测试成功。"
+          : "KV写入后无法读取。"
+    };
+
+  } catch (err) {
+    return {
+      ok: false,
+
+      version:
+        VERSION,
+
+      binding:
+        "INTEL_KV",
+
+      status:
+        "ERROR",
+
+      error:
+        err?.message ||
+        String(err),
+
+      messageCN:
+        "KV测试失败。"
+    };
+  }
 }
 
 /* =========================================================
@@ -3236,7 +3460,7 @@ export default {
   ) {
     if (
       request.method ===
-      "OPTIONS"
+        "OPTIONS"
     ) {
       return new Response(
         null,
@@ -3265,7 +3489,7 @@ export default {
 
       if (
         url.pathname ===
-        "/market"
+          "/market"
       ) {
         const result =
           await marketData();
@@ -3286,7 +3510,7 @@ export default {
 
       if (
         url.pathname ===
-        "/macro"
+          "/macro"
       ) {
         return reply(
           await macroData(
@@ -3297,7 +3521,7 @@ export default {
 
       if (
         url.pathname ===
-        "/events"
+          "/events"
       ) {
         return reply(
           await eventData(
@@ -3308,18 +3532,21 @@ export default {
 
       if (
         url.pathname ===
-        "/geopolitical"
+          "/geopolitical"
       ) {
         return reply(
-          await geopoliticalData({
-            fast: false
-          })
+          await geopoliticalData(
+            env,
+            {
+              fast: false
+            }
+          )
         );
       }
 
       if (
         url.pathname ===
-        "/intelligence"
+          "/intelligence"
       ) {
         return reply(
           await intelligence(
@@ -3330,15 +3557,25 @@ export default {
 
       if (
         url.pathname ===
-        "/fred-test"
+          "/kv-test"
+      ) {
+        return reply(
+          await kvTest(
+            env
+          )
+        );
+      }
+
+      if (
+        url.pathname ===
+          "/fred-test"
       ) {
         if (
           !env.FRED_API_KEY
         ) {
           return reply(
             {
-              ok:
-                false,
+              ok: false,
 
               version:
                 VERSION,
@@ -3364,8 +3601,7 @@ export default {
             );
 
           return reply({
-            ok:
-              true,
+            ok: true,
 
             version:
               VERSION,
@@ -3383,8 +3619,7 @@ export default {
         } catch (err) {
           return reply(
             {
-              ok:
-                false,
+              ok: false,
 
               version:
                 VERSION,
@@ -3397,7 +3632,8 @@ export default {
                 started,
 
               error:
-                err.message
+                err?.message ||
+                String(err)
             },
             502
           );
@@ -3406,8 +3642,7 @@ export default {
 
       return reply(
         {
-          ok:
-            false,
+          ok: false,
 
           version:
             VERSION,
@@ -3426,6 +3661,7 @@ export default {
             "/events",
             "/geopolitical",
             "/intelligence",
+            "/kv-test",
             "/fred-test"
           ]
         },
@@ -3435,8 +3671,7 @@ export default {
     } catch (err) {
       return reply(
         {
-          ok:
-            false,
+          ok: false,
 
           version:
             VERSION,
