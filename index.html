@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#071018">
-<title>ZEC AI Trading 360 · V4.5.3</title>
+<title>ZEC Trading 360 · V4.9.2</title>
 
 <style>
 :root{
   --bg:#050b11;
-  --panel:#0c1620;b
+  --panel:#0c1620;
   --panel2:#101d28;
   --line:#1d3443;
   --text:#edf7ff;
@@ -25,32 +25,37 @@
 
 body{
   margin:0;
-  background:
-    radial-gradient(circle at top,#102331 0,#071018 30%,#050b11 70%);
+  background:radial-gradient(
+    circle at top,
+    #102331 0,
+    #071018 30%,
+    #050b11 70%
+  );
   color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,
+  "Segoe UI",Roboto,Arial,sans-serif;
 }
 
 .app{
-  width:min(100%,760px);
+  width:min(100%,800px);
   margin:auto;
-  padding:18px 14px 42px;
+  padding:18px 14px 45px;
 }
 
 .header{
-  padding:8px 4px 18px;
+  padding:10px 4px 20px;
 }
 
 .brand{
   font-size:12px;
-  letter-spacing:2px;
+  letter-spacing:3px;
   color:var(--green);
   font-weight:800;
 }
 
 h1{
-  margin:7px 0 4px;
-  font-size:28px;
+  margin:8px 0;
+  font-size:29px;
 }
 
 .version{
@@ -61,42 +66,48 @@ h1{
 .live{
   display:inline-flex;
   align-items:center;
-  gap:7px;
-  margin-top:10px;
-  padding:6px 10px;
+  gap:8px;
+  margin-top:12px;
+  padding:8px 13px;
   border:1px solid #20533f;
-  border-radius:20px;
+  border-radius:25px;
   color:var(--green);
   font-size:12px;
+  font-weight:800;
 }
 
 .dot{
-  width:7px;height:7px;border-radius:50%;
+  width:8px;
+  height:8px;
+  border-radius:50%;
   background:var(--green);
-  box-shadow:0 0 10px var(--green);
+  box-shadow:0 0 12px var(--green);
 }
 
 .card{
-  background:linear-gradient(145deg,rgba(16,29,40,.96),rgba(8,18,26,.96));
+  background:linear-gradient(
+    145deg,
+    rgba(16,29,40,.96),
+    rgba(8,18,26,.96)
+  );
   border:1px solid var(--line);
   border-radius:18px;
-  padding:16px;
-  margin-bottom:13px;
+  padding:17px;
+  margin-bottom:14px;
   box-shadow:0 8px 30px rgba(0,0,0,.22);
 }
 
 .title{
   color:var(--muted);
-  font-size:11px;
-  letter-spacing:1.4px;
+  font-size:12px;
+  letter-spacing:.5px;
   font-weight:800;
-  text-transform:uppercase;
-  margin-bottom:11px;
+  margin-bottom:14px;
 }
 
 .price{
-  font-size:38px;
-  font-weight:800;
+  font-size:40px;
+  font-weight:900;
   letter-spacing:-1px;
 }
 
@@ -107,21 +118,31 @@ h1{
   margin-top:14px;
 }
 
+.grid2{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:9px;
+}
+
 .metric{
   background:#09131c;
   border:1px solid #172c3a;
   border-radius:12px;
-  padding:10px;
+  padding:11px;
+  min-width:0;
 }
 
 .metric span{
   display:block;
   font-size:10px;
   color:var(--muted);
-  margin-bottom:5px;
+  margin-bottom:6px;
 }
 
-.metric b{font-size:14px}
+.metric b{
+  font-size:14px;
+  overflow-wrap:anywhere;
+}
 
 .pos{color:var(--green)!important}
 .neg{color:var(--red)!important}
@@ -129,48 +150,99 @@ h1{
 .info{color:var(--blue)!important}
 .purple{color:var(--purple)!important}
 
-.decision{
-  text-align:center;
-  padding:5px 0;
-}
-
-.decisionLabel{
-  font-size:12px;
-  color:var(--muted);
-}
-
-.action{
-  font-size:25px;
-  font-weight:900;
-  margin:8px 0;
-}
-
-.sub{
-  color:var(--muted);
-  font-size:12px;
-  line-height:1.55;
-}
-
 .row{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:15px;
-  padding:9px 0;
+  gap:12px;
+  padding:10px 0;
   border-bottom:1px solid rgba(53,79,94,.35);
 }
 
-.row:last-child{border-bottom:0}
+.row:last-child{
+  border-bottom:0;
+}
 
 .label{
   color:var(--muted);
-  font-size:13px;
+  font-size:12px;
+  flex:1;
 }
 
 .value{
   text-align:right;
   font-weight:750;
   font-size:13px;
+  max-width:62%;
+  overflow-wrap:anywhere;
+}
+
+.decision{
+  text-align:center;
+  padding:10px 0;
+}
+
+.action{
+  font-size:31px;
+  font-weight:900;
+  margin:12px 0;
+}
+
+.sub{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.6;
+}
+
+.progress{
+  height:8px;
+  background:#071019;
+  border-radius:8px;
+  overflow:hidden;
+  margin-top:9px;
+}
+
+.bar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(
+    90deg,
+    #35a7ff,
+    #42e69d
+  );
+  transition:width .5s ease;
+}
+
+.reason{
+  background:#09141d;
+  border-left:3px solid #34566b;
+  padding:10px;
+  margin-top:8px;
+  border-radius:7px;
+  font-size:12px;
+  line-height:1.6;
+  overflow-wrap:anywhere;
+}
+
+.tf{
+  background:#09131c;
+  border:1px solid #203747;
+  border-radius:13px;
+  padding:13px;
+  margin-bottom:10px;
+}
+
+.tfHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+
+.tfName{
+  color:var(--blue);
+  font-size:15px;
+  font-weight:900;
 }
 
 .badge{
@@ -183,756 +255,1085 @@ h1{
   font-weight:800;
 }
 
-.progress{
-  height:8px;
-  background:#071019;
-  border-radius:8px;
-  overflow:hidden;
-  margin-top:8px;
-}
-
-.bar{
-  height:100%;
-  width:0%;
-  background:linear-gradient(90deg,#35a7ff,#42e69d);
-  transition:width .5s ease;
-}
-
-.reason{
-  background:#09141d;
-  border-left:3px solid #34566b;
-  padding:9px 10px;
-  margin-top:7px;
-  border-radius:7px;
-  font-size:12px;
-  line-height:1.45;
-}
-
 .headline{
-  padding:9px 0;
-  border-bottom:1px solid rgba(53,79,94,.35);
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
   font-size:12px;
-  line-height:1.45;
+  line-height:1.5;
 }
-
-.headline:last-child{border:0}
 
 button{
   width:100%;
   border:0;
-  padding:14px;
+  padding:15px;
   border-radius:13px;
-  background:linear-gradient(90deg,#1677ff,#24a8ff);
+  background:linear-gradient(
+    90deg,
+    #1677ff,
+    #24a8ff
+  );
   color:white;
   font-size:15px;
   font-weight:800;
   cursor:pointer;
-  margin-top:4px;
 }
 
-button:disabled{opacity:.55}
+button:disabled{
+  opacity:.55;
+}
 
 .small{
-  font-size:10px;
-  color:#6f8796;
+  font-size:11px;
+  color:#7892a2;
   text-align:center;
-  margin-top:16px;
-  line-height:1.6;
+  margin-top:15px;
+  line-height:1.7;
 }
 
 .errorBox{
+  display:none;
   border:1px solid #6b3038;
   background:#211015;
   padding:12px;
   border-radius:12px;
   color:#ff9ba4;
   font-size:12px;
-  display:none;
   margin-bottom:13px;
+  overflow-wrap:anywhere;
+}
+
+.notice{
+  border:1px solid #51452b;
+  background:#201b12;
+  padding:11px;
+  border-radius:11px;
+  color:var(--yellow);
+  font-size:12px;
+  line-height:1.6;
+  margin-top:12px;
 }
 
 @media(max-width:420px){
-  h1{font-size:25px}
-  .price{font-size:34px}
+  h1{font-size:26px}
+  .price{font-size:35px}
+  .card{padding:14px}
+  .metric{padding:9px}
+  .metric b{font-size:12px}
 }
 </style>
 </head>
 
 <body>
+
 <div class="app">
 
-<div class="header">
-  <div class="brand">ZEC AI INTELLIGENCE</div>
+<header class="header">
+  <div class="brand">
+    ZEC AI INTELLIGENCE
+  </div>
+
   <h1>ZEC Trading 360</h1>
-  <div class="version">Market Research Dashboard · V4.5.3</div>
+
+  <div class="version">
+    智能市场研究平台 / Market Intelligence Dashboard
+    <br>
+    Dashboard V4.9.2
+  </div>
+
   <div class="live">
     <span class="dot"></span>
-    <span id="workerStatus">Connecting...</span>
+    <span id="workerStatus">连接中 / Connecting...</span>
   </div>
-</div>
+</header>
 
 <div id="errorBox" class="errorBox"></div>
 
-<div class="card">
-  <div class="title">ZEC Market</div>
+<section class="card">
+  <div class="title">
+    📊 市场总览 / MARKET OVERVIEW
+  </div>
+
+  <div class="sub">
+    Zcash (ZEC) · USD
+  </div>
+
   <div id="zecPrice" class="price">--</div>
 
   <div class="grid3">
     <div class="metric">
-      <span>1 HOUR</span>
+      <span>1小时 / 1H</span>
       <b id="zec1h">--</b>
     </div>
+
     <div class="metric">
-      <span>24 HOURS</span>
+      <span>24小时 / 24H</span>
       <b id="zec24h">--</b>
     </div>
+
     <div class="metric">
-      <span>7 DAYS</span>
+      <span>7天 / 7D</span>
       <b id="zec7d">--</b>
     </div>
   </div>
 
   <div class="row">
-    <div class="label">Market Source</div>
-    <div id="marketSource" class="value">--</div>
+    <span class="label">数据来源 / Source</span>
+    <span id="marketSource" class="value">--</span>
   </div>
-</div>
 
-<div class="card">
-  <div class="title">AI Market Decision Engine</div>
+  <div class="row">
+    <span class="label">价格类型 / Price Type</span>
+    <span id="priceType" class="value">--</span>
+  </div>
+
+  <div class="notice">
+    CoinLore 为聚合参考价格，并非交易所实际成交报价。
+    <br>
+    Indicative aggregate price, not an executable quote.
+  </div>
+</section>
+
+<section class="card">
+  <div class="title">
+    🤖 AI 交易决策 / AI TRADING DECISION
+  </div>
 
   <div class="decision">
-    <div class="decisionLabel">CURRENT ACTION</div>
-    <div id="action" class="action warn">WAIT FOR CONFIRMATION</div>
+    <div class="sub">
+      当前模拟信号 / CURRENT SIMULATED SIGNAL
+    </div>
+
+    <div id="action" class="action warn">
+      WAIT
+    </div>
+
     <div id="actionReason" class="sub">
-      Waiting for sufficient market intelligence.
+      等待分析数据 / Awaiting intelligence
     </div>
   </div>
 
   <div class="row">
-    <div class="label">Trend</div>
-    <div id="trend" class="value">--</div>
+    <span class="label">市场趋势 / Trend</span>
+    <span id="trend" class="value">--</span>
   </div>
 
   <div class="row">
-    <div class="label">Setup Score</div>
-    <div id="setupScore" class="value">--</div>
-  </div>
-  <div class="progress"><div id="setupBar" class="bar"></div></div>
-
-  <div class="row">
-    <div class="label">Entry Quality</div>
-    <div id="entryQuality" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Chase Risk</div>
-    <div id="chaseRisk" class="value">--</div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="title">Why?</div>
-  <div id="why"></div>
-</div>
-
-<div class="card">
-  <div class="title">BTC / ETH Environment</div>
-
-  <div class="row">
-    <div class="label">BTC</div>
-    <div id="btc" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">ETH</div>
-    <div id="eth" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Market Regime</div>
-    <div id="marketRegime" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">ZEC Relative Strength</div>
-    <div id="relativeStrength" class="value">--</div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="title">Global Macro Intelligence</div>
-
-  <div class="row">
-    <div class="label">Macro Regime</div>
-    <div id="macroRegime" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Macro Risk</div>
-    <div id="macroRisk" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">FRED Status</div>
-    <div id="fredStatus" class="value">--</div>
-  </div>
-
-  <div id="macroReasons"></div>
-</div>
-
-<div class="card">
-  <div class="title">Economic Event Radar</div>
-
-  <div class="row">
-    <div class="label">Event Risk</div>
-    <div id="eventRisk" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Next Event</div>
-    <div id="nextEvent" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Date</div>
-    <div id="eventDate" class="value">--</div>
-  </div>
-
-  <div class="sub">
-    Event dates are monitoring context only. They do not represent a guaranteed market reaction.
-  </div>
-</div>
-
-<div class="card">
-  <div class="title">Geopolitical Intelligence</div>
-
-  <div class="row">
-    <div class="label">Source</div>
-    <div id="geoSource" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Data Status</div>
-    <div id="geoStatus" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Geopolitical Risk</div>
-    <div id="geoRisk" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Confidence</div>
-    <div id="geoConfidence" class="value">--</div>
-  </div>
-
-  <div id="geoMessage" class="sub"></div>
-  <div id="headlines"></div>
-</div>
-
-<div class="card">
-  <div class="title">Global Risk Fusion</div>
-
-  <div class="row">
-    <div class="label">Global Risk</div>
-    <div id="globalRisk" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Risk Score</div>
-    <div id="globalScore" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Posture</div>
-    <div id="posture" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Decision Reliability</div>
-    <div id="reliability" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Signal Permission</div>
-    <div id="signalPermission" class="value">--</div>
-  </div>
-
-  <div id="globalReasons"></div>
-</div>
-
-<div class="card">
-  <div class="title">Data Quality Monitor</div>
-
-  <div class="row">
-    <div class="label">Overall</div>
-    <div id="qualityStatus" class="value">--</div>
-  </div>
-
-  <div class="row">
-    <div class="label">Confidence</div>
-    <div id="qualityConfidence" class="value">--</div>
+    <span class="label">信号评分 / Setup Score</span>
+    <span id="setupScore" class="value">--</span>
   </div>
 
   <div class="progress">
-    <div id="qualityBar" class="bar"></div>
+    <div id="setupBar" class="bar"></div>
   </div>
 
   <div class="row">
-    <div class="label">Market</div>
-    <div id="qMarket" class="value">--</div>
+    <span class="label">入场质量 / Entry Quality</span>
+    <span id="entryQuality" class="value">--</span>
   </div>
 
   <div class="row">
-    <div class="label">Macro</div>
-    <div id="qMacro" class="value">--</div>
+    <span class="label">信号来源 / Signal Source</span>
+    <span id="signalSource" class="value">--</span>
+  </div>
+
+  <div id="decisionReasons"></div>
+</section>
+
+<section class="card">
+  <div class="title">
+    📈 多周期技术分析 / MULTI-TIMEFRAME ANALYSIS
+  </div>
+
+  <div id="technicalStatus" class="sub">
+    等待技术数据 / Waiting for technical data
+  </div>
+
+  <div id="timeframes"></div>
+</section>
+
+<section class="card">
+  <div class="title">
+    🎯 模拟交易计划 / SIMULATED TRADE PLAN
   </div>
 
   <div class="row">
-    <div class="label">Events</div>
-    <div id="qEvents" class="value">--</div>
+    <span class="label">交易方向 / Direction</span>
+    <span id="planAction" class="value">--</span>
   </div>
 
   <div class="row">
-    <div class="label">Geopolitical</div>
-    <div id="qGeo" class="value">--</div>
+    <span class="label">计划状态 / Plan Status</span>
+    <span id="planStatus" class="value">--</span>
   </div>
+
+  <div class="row">
+    <span class="label">模拟入场 / Entry</span>
+    <span id="entry" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">止损 / Stop Loss</span>
+    <span id="stopLoss" class="value neg">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">目标一 / Take Profit 1</span>
+    <span id="tp1" class="value pos">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">目标二 / Take Profit 2</span>
+    <span id="tp2" class="value pos">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">目标三 / Take Profit 3</span>
+    <span id="tp3" class="value pos">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">风险回报 / Risk Reward</span>
+    <span id="riskReward" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">参考市场 / Reference Market</span>
+    <span id="referenceMarket" class="value">--</span>
+  </div>
+
+  <div id="planWarning" class="notice">
+    仅供模拟研究，不执行真实交易。
+    <br>
+    Simulation only. No live order execution.
+  </div>
+</section>
+
+<section class="card">
+  <div class="title">
+    ₿ BTC / ETH 市场环境 / MARKET CONTEXT
+  </div>
+
+  <div class="row">
+    <span class="label">Bitcoin BTC</span>
+    <span id="btc" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Ethereum ETH</span>
+    <span id="eth" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">市场状态 / Market Regime</span>
+    <span id="marketRegime" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">ZEC 相对强度 / Relative Strength</span>
+    <span id="relativeStrength" class="value">--</span>
+  </div>
+</section>
+
+<section class="card">
+  <div class="title">
+    🌐 全球宏观经济 / GLOBAL MACRO
+  </div>
+
+  <div class="row">
+    <span class="label">宏观环境 / Macro Regime</span>
+    <span id="macroRegime" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">宏观风险 / Macro Risk</span>
+    <span id="macroRisk" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">FRED 数据 / FRED Status</span>
+    <span id="fredStatus" class="value">--</span>
+  </div>
+
+  <div id="macroReasons"></div>
+</section>
+
+<section class="card">
+  <div class="title">
+    📅 经济事件雷达 / ECONOMIC EVENT RADAR
+  </div>
+
+  <div class="row">
+    <span class="label">事件风险 / Event Risk</span>
+    <span id="eventRisk" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">下一个事件 / Next Event</span>
+    <span id="nextEvent" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">事件日期 / Event Date</span>
+    <span id="eventDate" class="value">--</span>
+  </div>
+
+  <div class="sub">
+    事件日期仅供监测参考，不代表市场必然上涨或下跌。
+    <br>
+    Event monitoring does not predict guaranteed reactions.
+  </div>
+</section>
+
+<section class="card">
+  <div class="title">
+    🌍 地缘政治情报 / GEOPOLITICAL INTELLIGENCE
+  </div>
+
+  <div class="row">
+    <span class="label">情报来源 / Source</span>
+    <span id="geoSource" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">数据状态 / Status</span>
+    <span id="geoStatus" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">政治风险 / Risk</span>
+    <span id="geoRisk" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">可信度 / Confidence</span>
+    <span id="geoConfidence" class="value">--</span>
+  </div>
+
+  <div id="geoMessage" class="sub"></div>
+
+  <div id="headlines"></div>
+</section>
+
+<section class="card">
+  <div class="title">
+    🛡️ 全球风险融合 / GLOBAL RISK FUSION
+  </div>
+
+  <div class="row">
+    <span class="label">综合风险 / Global Risk</span>
+    <span id="globalRisk" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">风险评分 / Risk Score</span>
+    <span id="globalScore" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">风险级别 / Risk Posture</span>
+    <span id="posture" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">信号许可 / Signal Permission</span>
+    <span id="signalPermission" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">地缘政治风险 / Geopolitical Risk</span>
+    <span id="globalGeoRisk" class="value">--</span>
+  </div>
+
+  <div id="globalReasons"></div>
+</section>
+
+<section class="card">
+  <div class="title">
+    🔔 价格预警 / PRICE ALERTS
+  </div>
+
+  <div class="row">
+    <span class="label">预警模式 / Alert Mode</span>
+    <span id="alertMode" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">数据来源 / Alert Source</span>
+    <span id="alertSource" class="value">--</span>
+  </div>
+
+  <div id="alertMessage" class="sub">
+    等待预警状态 / Awaiting alert status
+  </div>
+
+  <div class="notice">
+    此面板仅显示 Worker 返回的预警信息，
+    不会自动建立或修改价格提醒。
+    <br>
+    Read-only monitoring. No alert configuration changes.
+  </div>
+</section>
+
+<section class="card">
+  <div class="title">
+    📡 系统监控 / SYSTEM MONITOR
+  </div>
+
+  <div class="row">
+    <span class="label">Dashboard Version</span>
+    <span class="value pos">V4.9.2</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Worker Version</span>
+    <span id="workerVersion" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">API Connection</span>
+    <span id="apiStatus" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Last Update</span>
+    <span id="lastUpdate" class="value">--</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Analysis Duration</span>
+    <span id="elapsed" class="value">--</span>
+  </div>
+</section>
+
+<button id="refreshBtn" onclick="loadData()">
+  🔄 刷新智能分析 / REFRESH INTELLIGENCE
+</button>
+
+<div id="updated" class="small">
+  等待数据 / Waiting for data
 </div>
 
-<button id="refreshBtn" onclick="loadData()">Refresh Intelligence</button>
-
-<div id="updated" class="small">Waiting for data...</div>
-
 <div class="small">
-  ZEC AI Trading 360 · V4.5.3<br>
-  Market research and simulation only.<br>
-  仅用于市场研究及模拟分析，不构成投资建议。
+  ZEC AI Trading 360 · Dashboard V4.9.2
+  <br>
+  Powered by Cloudflare Workers
+  <br>
+  Market Research & Trading Simulation Only
+  <br>
+  仅供市场研究及模拟分析，不构成投资建议。
 </div>
 
 </div>
 
 <script>
-const API =
-"https://zec-ai-intelligence-v42.g-63285376.workers.dev/intelligence";
+"use strict";
+
+const VERSION="4.9.2";
+
+const API=
+"https://zec-ai-intelligence-v42.g-63285376.workers.dev";
 
 const $=id=>document.getElementById(id);
 
-function pct(v){
-  if(v==null || !Number.isFinite(Number(v))) return "--";
-  const n=Number(v);
-  return `${n>=0?"+":""}${n.toFixed(2)}%`;
+let loading=false;
+
+function valid(v){
+  return v!==null &&
+         v!==undefined &&
+         v!=="" &&
+         Number.isFinite(Number(v));
+}
+
+function num(v,d=2){
+  if(!valid(v))return "--";
+  return Number(v).toLocaleString("en-US",{
+    minimumFractionDigits:d,
+    maximumFractionDigits:d
+  });
 }
 
 function money(v){
-  if(v==null || !Number.isFinite(Number(v))) return "--";
-  return "$"+Number(v).toLocaleString(undefined,{
-    minimumFractionDigits:2,
-    maximumFractionDigits:2
-  });
+  return valid(v)?"$"+num(v,2):"--";
 }
 
-function tone(el,value){
-  if(!el) return;
-
-  el.classList.remove("pos","neg","warn","info","purple");
-
-  const s=String(value||"").toUpperCase();
-
-  if(
-    s.includes("HIGH") ||
-    s.includes("RISK_OFF") ||
-    s.includes("WEAK") ||
-    s.includes("DEFENSIVE") ||
-    s.includes("UNAVAILABLE")
-  ){
-    el.classList.add("neg");
-  }else if(
-    s.includes("LOW") ||
-    s.includes("RISK_ON") ||
-    s.includes("STRONG") ||
-    s==="OK" ||
-    s.includes("NORMAL")
-  ){
-    el.classList.add("pos");
-  }else if(
-    s.includes("UNKNOWN") ||
-    s.includes("MEDIUM") ||
-    s.includes("CAUTIOUS") ||
-    s.includes("DEGRADED") ||
-    s.includes("WAIT") ||
-    s.includes("REDUCED")
-  ){
-    el.classList.add("warn");
-  }else{
-    el.classList.add("info");
-  }
-}
-
-function percentTone(el,v){
-  el.textContent=pct(v);
-  el.className=Number(v)>=0?"pos":"neg";
-}
-
-function addReasons(container,reasons){
-  container.innerHTML="";
-
-  if(!Array.isArray(reasons)||!reasons.length){
-    container.innerHTML=
-      '<div class="reason">No additional driver reported.</div>';
-    return;
-  }
-
-  reasons.forEach(r=>{
-    const d=document.createElement("div");
-    d.className="reason";
-    d.textContent=r;
-    container.appendChild(d);
-  });
-}
-
-function decisionEngine(d){
-  const z=d.market?.ZEC;
-  const ctx=d.marketContext||{};
-  const macro=d.macro||{};
-  const events=d.events||{};
-  const geo=d.geopolitical||{};
-  const global=d.globalRisk||{};
-  const q=d.dataQuality||{};
-
-  let bearish=0;
-  let bullish=0;
-  let chase=0;
-  const reasons=[];
-
-  if(z?.change24h<=-4){
-    bearish+=3;
-    chase+=2;
-    reasons.push("ZEC has strong negative 24H momentum.");
-  }else if(z?.change24h<=-1){
-    bearish+=2;
-    reasons.push("ZEC 24H momentum is negative.");
-  }
-
-  if(z?.change24h>=4){
-    bullish+=3;
-    chase+=2;
-    reasons.push("ZEC has strong positive 24H momentum.");
-  }else if(z?.change24h>=1){
-    bullish+=2;
-    reasons.push("ZEC 24H momentum is positive.");
-  }
-
-  if(z?.change7d<0) bearish++;
-  if(z?.change7d>0) bullish++;
-
-  if(ctx.relativeStrength==="WEAK"){
-    bearish+=2;
-    reasons.push("ZEC is underperforming BTC/ETH.");
-  }
-
-  if(ctx.relativeStrength==="STRONG"){
-    bullish+=2;
-    reasons.push("ZEC is outperforming BTC/ETH.");
-  }
-
-  if(ctx.regime==="RISK_OFF"){
-    bearish+=2;
-    reasons.push("BTC/ETH environment is risk-off.");
-  }
-
-  if(ctx.regime==="RISK_ON"){
-    bullish+=2;
-    reasons.push("BTC/ETH environment is risk-on.");
-  }
-
-  if(macro.regime==="RISK_OFF"){
-    bearish+=2;
-    reasons.push("Macro regime is risk-off.");
-  }
-
-  if(macro.regime==="RISK_ON"){
-    bullish+=2;
-    reasons.push("Macro regime is risk-on.");
-  }
-
-  if(events.risk==="HIGH"){
-    chase+=2;
-    reasons.push("High-impact economic event risk is active.");
-  }
-
-  if(global.risk==="HIGH"){
-    chase+=2;
-    reasons.push("Global risk fusion is HIGH.");
-  }else if(global.risk==="MEDIUM"){
-    chase++;
-  }
-
-  if(geo.risk==="UNKNOWN"){
-    chase++;
-    reasons.push(
-      "Geopolitical feed is unavailable; uncertainty is not treated as low risk."
-    );
-  }
-
-  const directional=Math.abs(bullish-bearish);
-
-  let trend="NEUTRAL";
-  if(bearish>=bullish+2) trend="BEARISH";
-  if(bullish>=bearish+2) trend="BULLISH";
-
-  let setup=Math.round(
-    clamp(
-      directional*10 +
-      (q.confidence||0)*0.35 -
-      chase*8,
-      0,
-      100
-    )
-  );
-
-  let entry=Math.round(
-    clamp(
-      (q.confidence||0) -
-      chase*10 -
-      (events.risk==="HIGH"?10:0),
-      0,
-      100
-    )
-  );
-
-  let chaseRisk=
-    chase>=5?"HIGH":
-    chase>=2?"MEDIUM":
-    "LOW";
-
-  let action="WAIT FOR CONFIRMATION";
-
-  if(
-    q.confidence>=85 &&
-    global.risk!=="HIGH" &&
-    geo.risk!=="UNKNOWN" &&
-    setup>=70 &&
-    entry>=65
-  ){
-    action=
-      trend==="BULLISH"?"BUY SETUP":
-      trend==="BEARISH"?"SELL SETUP":
-      "WAIT FOR CONFIRMATION";
-  }
-
-  if(q.confidence<60){
-    action="CAUTION · DATA INCOMPLETE";
-  }
-
-  if(global.signalPermission==="REDUCED_CONFIDENCE"){
-    action="WAIT FOR CONFIRMATION";
-  }
-
-  return {
-    trend,
-    action,
-    setup,
-    entry,
-    chaseRisk,
-    reasons
-  };
+function pct(v){
+  if(!valid(v))return "--";
+  const n=Number(v);
+  return (n>=0?"+":"")+n.toFixed(2)+"%";
 }
 
 function clamp(v,min,max){
   return Math.max(min,Math.min(max,v));
 }
 
+function set(id,value){
+  const el=$(id);
+  if(!el)return;
+  el.textContent=
+    value===null ||
+    value===undefined ||
+    value===""
+    ?"未提供 / N/A"
+    :String(value);
+}
+
+function tone(id,value){
+  const el=$(id);
+  if(!el)return;
+
+  el.classList.remove(
+    "pos","neg","warn","info","purple"
+  );
+
+  const s=String(value||"").toUpperCase();
+
+  if(
+    s.includes("FAIL") ||
+    s.includes("ERROR") ||
+    s.includes("HIGH") ||
+    s.includes("BEARISH") ||
+    s==="SELL" ||
+    s.includes("RISK_OFF") ||
+    s.includes("UNAVAILABLE")
+  ){
+    el.classList.add("neg");
+  }
+  else if(
+    s==="BUY" ||
+    s.includes("BULLISH") ||
+    s==="LOW" ||
+    s==="ACTIVE" ||
+    s==="VERIFIED" ||
+    s==="ONLINE" ||
+    s==="OK" ||
+    s.includes("RISK_ON")
+  ){
+    el.classList.add("pos");
+  }
+  else if(
+    s.includes("UNKNOWN") ||
+    s.includes("UNCERTAIN") ||
+    s.includes("MEDIUM") ||
+    s.includes("WAIT") ||
+    s.includes("REDUCED") ||
+    s.includes("STATIC") ||
+    s.includes("CAUTION")
+  ){
+    el.classList.add("warn");
+  }
+  else{
+    el.classList.add("info");
+  }
+}
+
+function percentTone(id,value){
+  set(id,pct(value));
+  const el=$(id);
+  el.classList.remove("pos","neg");
+  if(valid(value)){
+    el.classList.add(
+      Number(value)>=0?"pos":"neg"
+    );
+  }
+}
+
+function reasons(id,items){
+  const box=$(id);
+  box.replaceChildren();
+
+  if(!Array.isArray(items)||!items.length){
+    const x=document.createElement("div");
+    x.className="reason";
+    x.textContent="暂无补充说明 / No additional details";
+    box.appendChild(x);
+    return;
+  }
+
+  items.forEach(item=>{
+    const x=document.createElement("div");
+    x.className="reason";
+    x.textContent=
+      typeof item==="string"
+      ?item
+      :JSON.stringify(item);
+    box.appendChild(x);
+  });
+}
+
+function renderMarket(d){
+  const z=d.market?.ZEC||{};
+  const btc=d.market?.BTC||{};
+  const eth=d.market?.ETH||{};
+
+  set("zecPrice",money(z.price));
+
+  percentTone("zec1h",z.change1h);
+  percentTone("zec24h",z.change24h);
+  percentTone("zec7d",z.change7d);
+
+  set("marketSource",z.source);
+  set("priceType",z.priceType);
+
+  set(
+    "btc",
+    money(btc.price)+" · "+pct(btc.change24h)
+  );
+
+  set(
+    "eth",
+    money(eth.price)+" · "+pct(eth.change24h)
+  );
+
+  const ctx=d.marketContext||{};
+
+  set("marketRegime",ctx.regime);
+  tone("marketRegime",ctx.regime);
+
+  set("relativeStrength",ctx.relativeStrength);
+  tone("relativeStrength",ctx.relativeStrength);
+}
+
+function renderDecision(d){
+  const dec=d.decision||{};
+
+  const action=dec.action||"WAIT";
+
+  set("action",action);
+  tone("action",action);
+
+  set(
+    "actionReason",
+    dec.actionCN ||
+    (
+      action==="WAIT"
+      ?"等待更明确的市场确认 / Await confirmation"
+      :"Worker 模拟信号 / Worker simulated signal"
+    )
+  );
+
+  set("trend",dec.trend);
+  tone("trend",dec.trend);
+
+  const score=dec.setupScore;
+
+  set(
+    "setupScore",
+    valid(score)?num(score,0)+"/100":"--"
+  );
+
+  $("setupBar").style.width=
+    valid(score)
+    ?clamp(Number(score),0,100)+"%"
+    :"0%";
+
+  set(
+    "entryQuality",
+    valid(dec.entryQuality)
+    ?num(dec.entryQuality,0)+"/100"
+    :"--"
+  );
+
+  set(
+    "signalSource",
+    d.decision?"Worker V"+(d.version||"--"):"N/A"
+  );
+
+  reasons("decisionReasons",dec.reasons);
+
+  const permission=d.globalRisk?.signalPermission;
+
+  if(
+    permission==="REDUCED_CONFIDENCE" ||
+    permission==="BLOCKED"
+  ){
+    set(
+      "actionReason",
+      "风险限制生效 / Risk restrictions active. "+
+      "Original Worker signal: "+action
+    );
+
+    set("action","WAIT / CAUTION");
+    tone("action","WAIT");
+  }
+}
+
+function renderTechnical(d){
+  const technical=d.technical||{};
+
+  set(
+    "technicalStatus",
+    technical.status ||
+    (technical.ok?"VERIFIED":"UNAVAILABLE")
+  );
+
+  const box=$("timeframes");
+  box.replaceChildren();
+
+  const frames=technical.timeframes||{};
+
+  const names=[
+    ["15m","M15"],
+    ["1h","H1"],
+    ["4h","H4"],
+    ["1d","D1"]
+  ];
+
+  names.forEach(([key,label])=>{
+    const t=frames[key]||{};
+
+    const card=document.createElement("div");
+    card.className="tf";
+
+    const head=document.createElement("div");
+    head.className="tfHead";
+
+    const name=document.createElement("span");
+    name.className="tfName";
+    name.textContent=label;
+
+    const trend=document.createElement("span");
+    trend.className="badge";
+    trend.textContent=t.trend||"N/A";
+
+    head.append(name,trend);
+    card.appendChild(head);
+
+    const rows=[
+      ["收盘 / Close",money(t.close)],
+      ["EMA20",num(t.ema20)],
+      ["EMA50",num(t.ema50)],
+      ["RSI14",num(t.rsi14)],
+      ["ATR14",num(t.atr14)],
+      ["K线数量 / Candles",t.candlesValidated],
+      ["最后收盘 / Last Closed",t.lastClosedCandle]
+    ];
+
+    rows.forEach(([label,value])=>{
+      const row=document.createElement("div");
+      row.className="row";
+
+      const a=document.createElement("span");
+      a.className="label";
+      a.textContent=label;
+
+      const b=document.createElement("span");
+      b.className="value";
+      b.textContent=
+        value===undefined||value===null
+        ?"N/A"
+        :String(value);
+
+      row.append(a,b);
+      card.appendChild(row);
+    });
+
+    box.appendChild(card);
+  });
+
+  if(Array.isArray(technical.errors) &&
+     technical.errors.length){
+    reasons("technicalStatus",[]);
+  }
+}
+
+function renderPlan(d){
+  const p=d.tradePlan||{};
+
+  set("planAction",p.action);
+  tone("planAction",p.action);
+
+  set("planStatus",p.status);
+  tone("planStatus",p.status);
+
+  set("entry",money(p.entry));
+  set("stopLoss",money(p.stopLoss));
+
+  set("tp1",money(p.takeProfit1));
+  set("tp2",money(p.takeProfit2));
+  set("tp3",money(p.takeProfit3));
+
+  const rr=p.riskReward||{};
+
+  set(
+    "riskReward",
+    [rr.TP1,rr.TP2,rr.TP3]
+      .filter(Boolean)
+      .join(" / ")||"--"
+  );
+
+  set("referenceMarket",p.referenceMarket);
+
+  set(
+    "planWarning",
+    p.warningCN ||
+    "模拟交易计划，不代表实际成交价格。"+
+    " / Simulation only."
+  );
+
+  if(p.executionEnabled===true){
+    set(
+      "planWarning",
+      "警告：后端报告执行功能已启用，"+
+      "请立即检查 Worker 配置。"+
+      " / WARNING: Execution enabled."
+    );
+  }
+}
+
+function renderMacro(d){
+  const m=d.macro||{};
+
+  set("macroRegime",m.regime);
+  tone("macroRegime",m.regime);
+
+  set("macroRisk",m.risk);
+  tone("macroRisk",m.risk);
+
+  set(
+    "fredStatus",
+    (m.status||"UNKNOWN")+
+    (
+      m.successfulSeries!=null
+      ?" · "+m.successfulSeries+
+      "/"+m.totalSeries
+      :""
+    )
+  );
+
+  reasons("macroReasons",m.reasons);
+}
+
+function renderEvents(d){
+  const e=d.events||{};
+
+  set("eventRisk",e.risk);
+  tone("eventRisk",e.risk);
+
+  set(
+    "nextEvent",
+    e.nextEvent?.name||"N/A"
+  );
+
+  set(
+    "eventDate",
+    e.nextEvent
+    ?e.nextEvent.date+
+      " · "+e.nextEvent.daysAway+" days"
+    :"N/A"
+  );
+}
+
+function renderGeo(d){
+  const g=d.geopolitical||{};
+
+  set("geoSource",g.source);
+  set("geoStatus",g.status);
+  set("geoRisk",g.risk);
+
+  tone("geoStatus",g.status);
+  tone("geoRisk",g.risk);
+
+  set(
+    "geoConfidence",
+    valid(g.confidence)
+    ?num(g.confidence,0)+"%"
+    :"N/A"
+  );
+
+  set(
+    "geoMessage",
+    g.reason ||
+    g.reasons?.[0] ||
+    "暂无经过验证的实时地缘政治情报。"+
+    " / No verified live intelligence."
+  );
+
+  const box=$("headlines");
+  box.replaceChildren();
+
+  if(Array.isArray(g.headlines)){
+    g.headlines.slice(0,5).forEach(h=>{
+      const x=document.createElement("div");
+      x.className="headline";
+      x.textContent=
+        typeof h==="string"
+        ?h
+        :h.title||"Untitled";
+      box.appendChild(x);
+    });
+  }
+}
+
+function renderGlobal(d){
+  const g=d.globalRisk||{};
+
+  set("globalRisk",g.risk);
+  tone("globalRisk",g.risk);
+
+  set(
+    "globalScore",
+    valid(g.riskScore)
+    ?num(g.riskScore,0)+"/10"
+    :"N/A"
+  );
+
+  set("posture",g.posture);
+  tone("posture",g.posture);
+
+  set("signalPermission",g.signalPermission);
+  tone("signalPermission",g.signalPermission);
+
+  set("globalGeoRisk",g.geopoliticalRisk);
+  tone("globalGeoRisk",g.geopoliticalRisk);
+
+  reasons("globalReasons",g.reasons);
+}
+
+function renderAlerts(d){
+  const a=d.alerts||{};
+
+  if(!d.alerts){
+    set("alertMode","READ ONLY / 未提供状态");
+    set("alertSource","N/A");
+    set(
+      "alertMessage",
+      "Worker 未在 intelligence 响应中提供预警详情。"+
+      " / Alert details not exposed by this endpoint."
+    );
+    return;
+  }
+
+  set(
+    "alertMode",
+    a.mode||a.status||"READ ONLY"
+  );
+
+  set(
+    "alertSource",
+    a.source||"CoinLore"
+  );
+
+  set(
+    "alertMessage",
+    a.messageCN ||
+    a.message ||
+    "预警状态已读取 / Alert status received"
+  );
+}
+
+function renderSystem(d){
+  set("workerVersion","V"+(d.version||"N/A"));
+  set("apiStatus","ONLINE");
+  tone("apiStatus","ONLINE");
+
+  set(
+    "lastUpdate",
+    d.timestamp
+    ?new Date(d.timestamp).toLocaleString()
+    :"N/A"
+  );
+
+  set(
+    "elapsed",
+    valid(d.elapsedMs)
+    ?num(d.elapsedMs,0)+" ms"
+    :"N/A"
+  );
+}
+
 async function loadData(){
+  if(loading)return;
+
+  loading=true;
+
   const btn=$("refreshBtn");
   const error=$("errorBox");
 
   btn.disabled=true;
-  btn.textContent="Loading Intelligence...";
+  btn.textContent="正在更新 / Updating...";
+
   error.style.display="none";
-  $("workerStatus").textContent="Updating...";
+
+  set("workerStatus","连接中 / Connecting...");
+
+  const controller=new AbortController();
+  const timer=setTimeout(
+    ()=>controller.abort(),
+    25000
+  );
 
   try{
-    const r=await fetch(API+"?t="+Date.now(),{
-      cache:"no-store"
-    });
+    const response=await fetch(
+      API+"/intelligence?t="+Date.now(),
+      {
+        cache:"no-store",
+        signal:controller.signal
+      }
+    );
 
-    if(!r.ok) throw new Error("Worker HTTP "+r.status);
-
-    const d=await r.json();
-
-    if(!d || !d.market){
-      throw new Error("Invalid intelligence response");
+    if(!response.ok){
+      throw new Error(
+        "Worker HTTP "+response.status
+      );
     }
 
-    $("workerStatus").textContent=
-      `ONLINE · V${d.version||"4.5.3"}`;
+    const d=await response.json();
 
-    const z=d.market?.ZEC||{};
-    const btc=d.market?.BTC||{};
-    const eth=d.market?.ETH||{};
-
-    $("zecPrice").textContent=money(z.price);
-    percentTone($("zec1h"),z.change1h);
-    percentTone($("zec24h"),z.change24h);
-    percentTone($("zec7d"),z.change7d);
-    $("marketSource").textContent=z.source||"--";
-
-    $("btc").textContent=
-      `${money(btc.price)} · ${pct(btc.change24h)}`;
-    $("eth").textContent=
-      `${money(eth.price)} · ${pct(eth.change24h)}`;
-
-    $("marketRegime").textContent=
-      d.marketContext?.regime||"--";
-    tone($("marketRegime"),$("marketRegime").textContent);
-
-    $("relativeStrength").textContent=
-      d.marketContext?.relativeStrength||"--";
-    tone($("relativeStrength"),$("relativeStrength").textContent);
-
-    const macro=d.macro||{};
-
-    $("macroRegime").textContent=macro.regime||"UNKNOWN";
-    tone($("macroRegime"),$("macroRegime").textContent);
-
-    $("macroRisk").textContent=macro.risk||"UNKNOWN";
-    tone($("macroRisk"),$("macroRisk").textContent);
-
-    $("fredStatus").textContent=
-      `${macro.status||"UNKNOWN"}${
-        macro.successfulSeries!=null
-        ?` · ${macro.successfulSeries}/${macro.totalSeries}`
-        :""
-      }`;
-
-    tone($("fredStatus"),macro.status);
-    addReasons($("macroReasons"),macro.reasons);
-
-    const events=d.events||{};
-
-    $("eventRisk").textContent=events.risk||"UNKNOWN";
-    tone($("eventRisk"),$("eventRisk").textContent);
-
-    $("nextEvent").textContent=
-      events.nextEvent?.name||"No event returned";
-
-    $("eventDate").textContent=
-      events.nextEvent
-      ?`${events.nextEvent.date} · ${events.nextEvent.daysAway} day(s)`
-      :"--";
-
-    const geo=d.geopolitical||{};
-
-    $("geoSource").textContent=geo.source||"--";
-    $("geoStatus").textContent=geo.status||"UNKNOWN";
-    tone($("geoStatus"),$("geoStatus").textContent);
-
-    $("geoRisk").textContent=geo.risk||"UNKNOWN";
-    tone($("geoRisk"),$("geoRisk").textContent);
-
-    $("geoConfidence").textContent=
-      `${geo.confidence??0}%`;
-
-    $("geoMessage").textContent=
-      geo.reason ||
-      geo.reasons?.[0] ||
-      "Geopolitical monitoring operational.";
-
-    $("headlines").innerHTML="";
-
-    if(Array.isArray(geo.headlines) && geo.headlines.length){
-      geo.headlines.slice(0,5).forEach(h=>{
-        const x=document.createElement("div");
-        x.className="headline";
-        x.textContent=h.title||"Untitled headline";
-        $("headlines").appendChild(x);
-      });
+    if(
+      !d ||
+      d.ok===false ||
+      !d.market ||
+      !d.market.ZEC
+    ){
+      throw new Error(
+        "Invalid Worker intelligence response"
+      );
     }
 
-    const global=d.globalRisk||{};
+    renderMarket(d);
+    renderDecision(d);
+    renderTechnical(d);
+    renderPlan(d);
+    renderMacro(d);
+    renderEvents(d);
+    renderGeo(d);
+    renderGlobal(d);
+    renderAlerts(d);
+    renderSystem(d);
 
-    $("globalRisk").textContent=global.risk||"UNKNOWN";
-    tone($("globalRisk"),$("globalRisk").textContent);
+    set(
+      "workerStatus",
+      "ONLINE · Worker V"+(d.version||"N/A")
+    );
 
-    $("globalScore").textContent=
-      global.riskScore!=null
-      ?`${global.riskScore}/10`
-      :"--";
-
-    $("posture").textContent=global.posture||"--";
-    tone($("posture"),$("posture").textContent);
-
-    $("reliability").textContent=
-      global.decisionReliability||"--";
-    tone($("reliability"),$("reliability").textContent);
-
-    $("signalPermission").textContent=
-      global.signalPermission||"--";
-    tone($("signalPermission"),$("signalPermission").textContent);
-
-    addReasons($("globalReasons"),global.reasons);
-
-    const q=d.dataQuality||{};
-
-    $("qualityStatus").textContent=q.status||"UNKNOWN";
-    tone($("qualityStatus"),$("qualityStatus").textContent);
-
-    $("qualityConfidence").textContent=
-      `${q.confidence??0}%`;
-
-    $("qualityBar").style.width=
-      `${clamp(q.confidence||0,0,100)}%`;
-
-    $("qMarket").textContent=q.market||"--";
-    $("qMacro").textContent=q.macro||"--";
-    $("qEvents").textContent=q.events||"--";
-    $("qGeo").textContent=q.geopolitical||"--";
-
-    tone($("qMarket"),$("qMarket").textContent);
-    tone($("qMacro"),$("qMacro").textContent);
-    tone($("qEvents"),$("qEvents").textContent);
-    tone($("qGeo"),$("qGeo").textContent);
-
-    const dec=decisionEngine(d);
-
-    $("trend").textContent=dec.trend;
-    tone($("trend"),dec.trend);
-
-    $("action").textContent=dec.action;
-    tone($("action"),dec.action);
-
-    $("setupScore").textContent=`${dec.setup}/100`;
-    $("setupBar").style.width=`${dec.setup}%`;
-
-    $("entryQuality").textContent=`${dec.entry}/100`;
-
-    $("chaseRisk").textContent=dec.chaseRisk;
-    tone($("chaseRisk"),dec.chaseRisk);
-
-    $("actionReason").textContent=
-      dec.action==="WAIT FOR CONFIRMATION"
-      ?"Directional conditions exist, but confirmation and risk conditions are not strong enough for a clean setup."
-      :dec.action==="CAUTION · DATA INCOMPLETE"
-      ?"Data confidence is insufficient for a normal market setup."
-      :"Research conditions satisfy the current setup filter.";
-
-    addReasons($("why"),dec.reasons);
-
-    $("updated").textContent=
-      "Last intelligence update: "+
-      new Date(d.timestamp||Date.now()).toLocaleString();
+    set(
+      "updated",
+      "最后更新 / Last Update: "+
+      new Date().toLocaleString()
+    );
 
   }catch(e){
-    $("workerStatus").textContent="CONNECTION ERROR";
+    set(
+      "workerStatus",
+      "连接失败 / CONNECTION ERROR"
+    );
+
+    set("apiStatus","ERROR");
+    tone("apiStatus","ERROR");
 
     error.textContent=
-      "Unable to load Intelligence API: "+e.message;
+      "无法读取 Worker API / API Error: "+
+      e.message;
+
     error.style.display="block";
 
   }finally{
+    clearTimeout(timer);
+    loading=false;
+
     btn.disabled=false;
-    btn.textContent="Refresh Intelligence";
+    btn.textContent=
+      "🔄 刷新智能分析 / REFRESH INTELLIGENCE";
   }
 }
 
