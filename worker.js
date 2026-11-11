@@ -1080,4 +1080,2380 @@ function fomcEvents() {
           "美联储 FOMC 利率决议",
 
         impact:
-          "HIGH
+          "HIGH",
+
+        meetingStart:
+          x.start,
+
+        date:
+          x.date,
+
+        daysAway:
+          daysAway(x.date),
+
+        source:
+          "Federal Reserve Official Calendar",
+
+        verified:
+          true
+      })
+    );
+}
+
+function eventRiskScore(
+  events
+) {
+  let score = 0;
+
+  const reasons = [];
+
+  for (
+    const event of
+    events
+  ) {
+    if (
+      event.daysAway < 0
+    ) {
+      continue;
+    }
+
+    let contribution = 0;
+
+    if (
+      event.impact === "HIGH"
+    ) {
+      if (
+        event.daysAway <= 1
+      ) {
+        contribution = 3;
+
+      } else if (
+        event.daysAway <= 3
+      ) {
+        contribution = 2;
+
+      } else if (
+        event.daysAway <= 7
+      ) {
+        contribution = 1;
+      }
+    }
+
+    if (
+      contribution > 0
+    ) {
+      score +=
+        contribution;
+
+      reasons.push(
+        `${event.nameCN}: ${event.date} (${event.daysAway}天)`
+      );
+    }
+  }
+
+  score =
+    clamp(
+      score,
+      0,
+      6
+    );
+
+  return {
+    score,
+
+    risk:
+      score >= 4
+        ? "HIGH"
+        : score >= 2
+          ? "MEDIUM"
+          : "LOW",
+
+    reasons
+  };
+}
+
+async function eventData(
+  env,
+  fast = false
+) {
+  if (!env.FRED_API_KEY) {
+    return {
+      ok: false,
+      status:
+        "NOT_CONFIGURED",
+
+      risk:
+        "UNKNOWN",
+
+      score:
+        null,
+
+      events:
+        [],
+
+      messageCN:
+        "经济事件雷达未配置"
+    };
+  }
+
+  let rawFredEvents = [];
+
+  const errors = [];
+
+  for (
+    const release of
+    RELEASES
+  ) {
+    try {
+      const dates =
+        await releaseDates(
+          release,
+          env.FRED_API_KEY,
+          fast
+            ? 3000
+            : 10000
+        );
+
+      rawFredEvents.push(
+        ...dates
+      );
+
+    } catch (err) {
+      errors.push(
+        `${release.name}: ${err.message}`
+      );
+    }
+
+    if (!fast) {
+      await sleep(60);
+    }
+  }
+
+  const fredEvents =
+    nearestPerReleaseFamily(
+      rawFredEvents
+    );
+
+  const officialFomc =
+    fomcEvents();
+
+  const events = [
+    ...fredEvents,
+    ...officialFomc
+  ].sort(
+    (a, b) =>
+      a.date.localeCompare(
+        b.date
+      )
+  );
+
+  if (
+    !events.length &&
+    errors.length ===
+      RELEASES.length
+  ) {
+    return {
+      ok: false,
+
+      status:
+        "DATA_UNAVAILABLE",
+
+      risk:
+        "UNKNOWN",
+
+      score:
+        null,
+
+      events:
+        [],
+
+      errors,
+
+      messageCN:
+        "经济事件数据暂时不可用"
+    };
+  }
+
+  const analysis =
+    eventRiskScore(
+      events
+    );
+
+  return {
+    ok: true,
+
+    status:
+      errors.length
+        ? "DEGRADED"
+        : "OK",
+
+    source:
+      "FRED + Federal Reserve Official Calendar",
+
+    requestMode:
+      fast
+        ? "FAST_SEQUENTIAL"
+        : "SEQUENTIAL",
+
+    horizonDays:
+      45,
+
+    risk:
+      analysis.risk,
+
+    score:
+      analysis.score,
+
+    nextEvent:
+      events[0] || null,
+
+    events:
+      events.slice(
+        0,
+        10
+      ),
+
+    rawFredEventCount:
+      rawFredEvents.length,
+
+    uniqueFredReleaseFamilies:
+      fredEvents.length,
+
+    fomcEventCount:
+      officialFomc.length,
+
+    deduplication:
+      "NEAREST_EVENT_PER_RELEASE_FAMILY",
+
+    reasons:
+      analysis.reasons,
+
+    errors,
+
+    messageCN:
+      analysis.risk === "HIGH"
+        ? "近期存在高影响经济事件，需要提高风险控制"
+        : analysis.risk === "MEDIUM"
+          ? "近期经济事件风险需要关注"
+          : "近期经济事件风险相对有限",
+
+    noteCN:
+      "FRED发布日期与FOMC政策会议分开处理。事件日期只用于风险监控，不代表市场必然产生特定方向反应。"
+  };
+}
+
+/* =========================================================
+   MULTI-SOURCE GEOPOLITICAL INTELLIGENCE
+========================================================= */
+
+function geoUnknown(
+  reason,
+  errors = [],
+  status =
+    "DATA_DEGRADED"
+) {
+  return {
+    ok: false,
+
+    status,
+
+    dataAvailable:
+      false,
+
+    source:
+      "MULTI_SOURCE",
+
+    risk:
+      "UNKNOWN",
+
+    score:
+      null,
+
+    confidence:
+      0,
+
+    sourceCount:
+      0,
+
+    articleCount:
+      0,
+
+    reason,
+
+    reasons: [
+      reason
+    ],
+
+    groups:
+      [],
+
+    headlines:
+      [],
+
+    sources:
+      [],
+
+    errors:
+      Array.isArray(errors)
+        ? errors
+        : [String(errors)],
+
+    messageCN:
+      "地缘政治情报源暂时不足，因此风险保持未知，不会被错误判断为低风险。",
+
+    methodology:
+      "Unavailable geopolitical intelligence is UNKNOWN, never LOW."
+  };
+}
+
+async function googleNewsGeo(
+  timeout = 3500
+) {
+  const params =
+    new URLSearchParams({
+      q:
+        GOOGLE_GEO_QUERY,
+
+      hl:
+        "en-US",
+
+      gl:
+        "US",
+
+      ceid:
+        "US:en"
+    });
+
+  const url =
+    `https://news.google.com/rss/search?${params}`;
+
+  const xml =
+    await getText(
+      url,
+      timeout
+    );
+
+  const items =
+    parseRSS(
+      xml,
+      "Google News"
+    );
+
+  if (!items.length) {
+    throw new Error(
+      "Google News returned no usable RSS items"
+    );
+  }
+
+  return {
+    source:
+      "Google News",
+
+    ok:
+      true,
+
+    items:
+      items.slice(
+        0,
+        30
+      )
+  };
+}
+
+async function gdeltGeo(
+  timeout = 2200
+) {
+  const params =
+    new URLSearchParams({
+      query:
+        GDELT_QUERY,
+
+      mode:
+        "ArtList",
+
+      maxrecords:
+        "20",
+
+      format:
+        "json",
+
+      sort:
+        "DateDesc",
+
+      timespan:
+        "24h"
+    });
+
+  const data =
+    await getJSON(
+      `https://api.gdeltproject.org/api/v2/doc/doc?${params}`,
+      timeout
+    );
+
+  if (
+    !Array.isArray(
+      data?.articles
+    )
+  ) {
+    throw new Error(
+      "GDELT returned no usable dataset"
+    );
+  }
+
+  const items =
+    data.articles
+      .slice(0, 20)
+      .map(
+        x => ({
+          title:
+            cleanText(
+              x.title
+            ),
+
+          url:
+            x.url || null,
+
+          publisher:
+            x.domain || "GDELT",
+
+          published:
+            x.seendate || null,
+
+          feedSource:
+            "GDELT"
+        })
+      )
+      .filter(
+        x => x.title
+      );
+
+  if (!items.length) {
+    throw new Error(
+      "GDELT returned no usable headlines"
+    );
+  }
+
+  return {
+    source:
+      "GDELT",
+
+    ok:
+      true,
+
+    items
+  };
+}
+
+function dedupeGeoArticles(
+  articles
+) {
+  const seen =
+    new Set();
+
+  const output = [];
+
+  for (
+    const article of
+    articles
+  ) {
+    const normalized =
+      normalizeTitle(
+        article.title
+      );
+
+    if (!normalized) {
+      continue;
+    }
+
+    /*
+      Remove obvious exact/near-exact feed duplicates.
+      First 120 normalized chars are sufficient for
+      basic RSS duplicate protection.
+    */
+    const key =
+      normalized.slice(
+        0,
+        120
+      );
+
+    if (
+      seen.has(key)
+    ) {
+      continue;
+    }
+
+    seen.add(key);
+
+    output.push({
+      ...article,
+      normalizedTitle:
+        normalized
+    });
+  }
+
+  return output;
+}
+
+function classifyGeoArticle(
+  article
+) {
+  const text =
+    normalizeTitle(
+      article.title
+    );
+
+  const categories = [];
+
+  for (
+    const [
+      key,
+      config
+    ] of Object.entries(
+      GEO_CATEGORIES
+    )
+  ) {
+    if (
+      config.words.some(
+        word =>
+          text.includes(
+            word
+          )
+      )
+    ) {
+      categories.push(
+        key
+      );
+    }
+  }
+
+  return {
+    ...article,
+    categories
+  };
+}
+
+function geopoliticalAnalysis(
+  articles,
+  successfulSources
+) {
+  const classified =
+    articles.map(
+      classifyGeoArticle
+    );
+
+  const groups = {};
+
+  for (
+    const [
+      key,
+      config
+    ] of Object.entries(
+      GEO_CATEGORIES
+    )
+  ) {
+    groups[key] = {
+      id:
+        key,
+
+      count:
+        0,
+
+      publishers:
+        new Set(),
+
+      feedSources:
+        new Set(),
+
+      weight:
+        config.weight
+    };
+  }
+
+  for (
+    const article of
+    classified
+  ) {
+    for (
+      const category of
+      article.categories
+    ) {
+      groups[category]
+        .count++;
+
+      if (
+        article.publisher
+      ) {
+        groups[category]
+          .publishers
+          .add(
+            article.publisher
+          );
+      }
+
+      if (
+        article.feedSource
+      ) {
+        groups[category]
+          .feedSources
+          .add(
+            article.feedSource
+          );
+      }
+    }
+  }
+
+  let score = 0;
+
+  const reasons = [];
+
+  const outputGroups = [];
+
+  for (
+    const group of
+    Object.values(groups)
+  ) {
+    const publisherCount =
+      group.publishers.size;
+
+    const feedSourceCount =
+      group.feedSources.size;
+
+    let contribution = 0;
+
+    if (
+      group.count >= 8 &&
+      publisherCount >= 3
+    ) {
+      contribution =
+        group.weight;
+
+    } else if (
+      group.count >= 4 &&
+      publisherCount >= 2
+    ) {
+      contribution =
+        Math.max(
+          1,
+          group.weight - 1
+        );
+
+    } else if (
+      group.count >= 2
+    ) {
+      contribution = 1;
+    }
+
+    /*
+      Single-feed-source protection:
+      one feed alone cannot generate an aggressive
+      geopolitical HIGH classification.
+    */
+    if (
+      successfulSources <= 1
+    ) {
+      contribution =
+        Math.min(
+          contribution,
+          1
+        );
+    }
+
+    score +=
+      contribution;
+
+    if (
+      group.count >= 2
+    ) {
+      reasons.push(
+        `${group.id}: ${group.count} headlines · ${publisherCount} publishers`
+      );
+    }
+
+    outputGroups.push({
+      id:
+        group.id,
+
+      count:
+        group.count,
+
+      publisherCount,
+
+      feedSourceCount,
+
+      weight:
+        group.weight,
+
+      contribution
+    });
+  }
+
+  score =
+    clamp(
+      score,
+      0,
+      10
+    );
+
+  let risk =
+    score >= 7
+      ? "HIGH"
+      : score >= 3
+        ? "MEDIUM"
+        : "LOW";
+
+  /*
+    One feed source is not enough to classify HIGH.
+  */
+  if (
+    successfulSources <= 1 &&
+    risk === "HIGH"
+  ) {
+    risk =
+      "MEDIUM";
+  }
+
+  const publisherSet =
+    new Set(
+      classified
+        .map(
+          x => x.publisher
+        )
+        .filter(Boolean)
+    );
+
+  let confidence = 0;
+
+  if (
+    successfulSources >= 2
+  ) {
+    confidence += 35;
+
+  } else if (
+    successfulSources === 1
+  ) {
+    confidence += 20;
+  }
+
+  if (
+    classified.length >= 20
+  ) {
+    confidence += 30;
+
+  } else if (
+    classified.length >= 10
+  ) {
+    confidence += 20;
+
+  } else if (
+    classified.length >= 5
+  ) {
+    confidence += 10;
+  }
+
+  if (
+    publisherSet.size >= 6
+  ) {
+    confidence += 30;
+
+  } else if (
+    publisherSet.size >= 3
+  ) {
+    confidence += 20;
+
+  } else if (
+    publisherSet.size >= 2
+  ) {
+    confidence += 10;
+  }
+
+  confidence =
+    clamp(
+      confidence,
+      0,
+      95
+    );
+
+  return {
+    risk,
+    score,
+    confidence,
+
+    reasons,
+
+    groups:
+      outputGroups,
+
+    publisherCount:
+      publisherSet.size,
+
+    classified
+  };
+}
+
+async function geopoliticalData(
+  options = {}
+) {
+  const fast =
+    Boolean(
+      options.fast
+    );
+
+  const googleTimeout =
+    fast
+      ? 1800
+      : 3500;
+
+  const gdeltTimeout =
+    fast
+      ? 1200
+      : 2200;
+
+  const sourceResults =
+    await Promise.allSettled([
+      googleNewsGeo(
+        googleTimeout
+      ),
+
+      gdeltGeo(
+        gdeltTimeout
+      )
+    ]);
+
+  const articles = [];
+
+  const sources = [];
+
+  const errors = [];
+
+  for (
+    const result of
+    sourceResults
+  ) {
+    if (
+      result.status ===
+      "fulfilled"
+    ) {
+      sources.push({
+        source:
+          result.value.source,
+
+        status:
+          "OK",
+
+        articleCount:
+          result.value.items.length
+      });
+
+      articles.push(
+        ...result.value.items
+      );
+
+    } else {
+      const message =
+        result.reason?.message ||
+        String(
+          result.reason
+        );
+
+      errors.push(
+        message
+      );
+
+      sources.push({
+        source:
+          message.includes(
+            "GDELT"
+          )
+            ? "GDELT"
+            : "NEWS_SOURCE",
+
+        status:
+          message === "TIMEOUT"
+            ? "TIMEOUT"
+            : "UNAVAILABLE",
+
+        error:
+          message
+      });
+    }
+  }
+
+  const successfulSources =
+    sources.filter(
+      x =>
+        x.status === "OK"
+    ).length;
+
+  if (
+    successfulSources === 0
+  ) {
+    return geoUnknown(
+      "All geopolitical intelligence sources are unavailable. Risk remains UNKNOWN.",
+      errors,
+      "DATA_UNAVAILABLE"
+    );
+  }
+
+  const unique =
+    dedupeGeoArticles(
+      articles
+    );
+
+  if (
+    unique.length < 3
+  ) {
+    return {
+      ok:
+        true,
+
+      status:
+        "LIMITED_DATA",
+
+      dataAvailable:
+        true,
+
+      source:
+        "MULTI_SOURCE",
+
+      risk:
+        "UNKNOWN",
+
+      score:
+        null,
+
+      confidence:
+        20,
+
+      sourceCount:
+        successfulSources,
+
+      articleCount:
+        unique.length,
+
+      reasons: [
+        "Insufficient geopolitical news sample."
+      ],
+
+      groups:
+        [],
+
+      headlines:
+        unique.slice(
+          0,
+          10
+        ),
+
+      sources,
+
+      errors,
+
+      messageCN:
+        "地缘政治新闻样本不足，因此风险保持未知。",
+
+      methodology:
+        "Insufficient intelligence is UNKNOWN, never LOW."
+    };
+  }
+
+  const analysis =
+    geopoliticalAnalysis(
+      unique,
+      successfulSources
+    );
+
+  /*
+    LOW requires reasonable evidence.
+    A tiny or weak sample cannot be used to assert LOW.
+  */
+  if (
+    analysis.risk === "LOW" &&
+    analysis.confidence < 40
+  ) {
+    return {
+      ok:
+        true,
+
+      status:
+        "LOW_CONFIDENCE",
+
+      dataAvailable:
+        true,
+
+      source:
+        "MULTI_SOURCE",
+
+      risk:
+        "UNKNOWN",
+
+      score:
+        analysis.score,
+
+      confidence:
+        analysis.confidence,
+
+      sourceCount:
+        successfulSources,
+
+      articleCount:
+        unique.length,
+
+      publisherCount:
+        analysis.publisherCount,
+
+      reasons:
+        analysis.reasons.length
+          ? analysis.reasons
+          : [
+              "Available news sample is insufficient to confirm LOW geopolitical risk."
+            ],
+
+      groups:
+        analysis.groups,
+
+      headlines:
+        unique
+          .slice(
+            0,
+            10
+          )
+          .map(
+            x => ({
+              title:
+                x.title,
+
+              url:
+                x.url,
+
+              publisher:
+                x.publisher,
+
+              feedSource:
+                x.feedSource,
+
+              published:
+                x.published
+            })
+          ),
+
+      sources,
+
+      errors,
+
+      messageCN:
+        "现有新闻样本不足以确认低地缘政治风险，因此保持未知。",
+
+      methodology:
+        "LOW geopolitical risk requires minimum confidence. Otherwise risk remains UNKNOWN."
+    };
+  }
+
+  return {
+    ok:
+      true,
+
+    status:
+      errors.length
+        ? "DEGRADED"
+        : "OK",
+
+    dataAvailable:
+      true,
+
+    source:
+      "MULTI_SOURCE",
+
+    risk:
+      analysis.risk,
+
+    score:
+      analysis.score,
+
+    confidence:
+      analysis.confidence,
+
+    sourceCount:
+      successfulSources,
+
+    articleCount:
+      unique.length,
+
+    publisherCount:
+      analysis.publisherCount,
+
+    reasons:
+      analysis.reasons,
+
+    groups:
+      analysis.groups,
+
+    headlines:
+      unique
+        .slice(
+          0,
+          10
+        )
+        .map(
+          x => ({
+            title:
+              x.title,
+
+            url:
+              x.url,
+
+            publisher:
+              x.publisher,
+
+            feedSource:
+              x.feedSource,
+
+            published:
+              x.published
+          })
+        ),
+
+    sources,
+
+    errors,
+
+    messageCN:
+      analysis.risk === "HIGH"
+        ? "多来源新闻显示全球地缘政治风险较高"
+        : analysis.risk === "MEDIUM"
+          ? "多来源新闻显示地缘政治风险需要关注"
+          : "现有多来源新闻未显示明显高地缘政治风险",
+
+    methodology:
+      "Multi-source geopolitical monitor. Independent-source confirmation increases confidence. Geopolitical news never independently creates BUY or SELL signals."
+  };
+}
+
+/* =========================================================
+   DATA QUALITY
+========================================================= */
+
+function quality(
+  market,
+  macro,
+  events,
+  geo
+) {
+  let confidence = 0;
+
+  const marketOK =
+    Boolean(
+      market.ZEC &&
+      market.BTC &&
+      market.ETH
+    );
+
+  if (marketOK) {
+    confidence += 40;
+  }
+
+  if (macro?.ok) {
+    confidence += 25;
+  }
+
+  if (events?.ok) {
+    confidence += 20;
+  }
+
+  if (
+    geo?.ok &&
+    geo?.dataAvailable &&
+    geo.risk !== "UNKNOWN"
+  ) {
+    confidence +=
+      Math.round(
+        15 *
+        (geo.confidence || 0) /
+        100
+      );
+  }
+
+  confidence =
+    clamp(
+      confidence,
+      0,
+      100
+    );
+
+  const status =
+    confidence < 60
+      ? "DATA_INCOMPLETE"
+      : confidence < 90
+        ? "DEGRADED"
+        : "OK";
+
+  return {
+    status,
+    confidence,
+
+    market:
+      marketOK
+        ? "OK"
+        : "UNAVAILABLE",
+
+    macro:
+      macro?.status ||
+      "UNAVAILABLE",
+
+    events:
+      events?.status ||
+      "UNAVAILABLE",
+
+    geopolitical:
+      geo?.status ||
+      "UNAVAILABLE",
+
+    geopoliticalRisk:
+      geo?.risk ||
+      "UNKNOWN",
+
+    geopoliticalConfidence:
+      geo?.confidence ?? 0,
+
+    messageCN:
+      status === "OK"
+        ? "数据质量良好"
+        : status === "DEGRADED"
+          ? "部分情报源置信度不足，决策置信度已自动降低"
+          : "数据不足，只能进行谨慎观察",
+
+    rule:
+      "Unavailable or insufficient intelligence is never treated as LOW risk."
+  };
+}
+
+/* =========================================================
+   GLOBAL RISK FUSION V4.7.1
+========================================================= */
+
+function fusion(
+  context,
+  macro,
+  events,
+  geo,
+  qualityData
+) {
+  let score = 0;
+
+  const reasons = [];
+
+  if (
+    context.regime ===
+    "RISK_OFF"
+  ) {
+    score += 2;
+
+    reasons.push(
+      "加密市场环境偏向风险规避"
+    );
+  }
+
+  if (
+    context.regime ===
+    "RISK_ON"
+  ) {
+    score--;
+  }
+
+  if (
+    macro?.regime ===
+    "RISK_OFF"
+  ) {
+    score += 3;
+
+    reasons.push(
+      "宏观经济环境处于风险规避状态"
+    );
+  }
+
+  if (
+    macro?.regime ===
+    "RISK_ON"
+  ) {
+    score--;
+  }
+
+  if (
+    events?.risk ===
+    "HIGH"
+  ) {
+    score += 3;
+
+    reasons.push(
+      "高影响经济事件临近"
+    );
+
+  } else if (
+    events?.risk ===
+    "MEDIUM"
+  ) {
+    score++;
+
+    reasons.push(
+      "近期存在需要关注的经济事件"
+    );
+  }
+
+  if (
+    geo?.risk ===
+    "HIGH"
+  ) {
+    score += 2;
+
+    reasons.push(
+      "多来源地缘政治情报显示较高风险"
+    );
+
+  } else if (
+    geo?.risk ===
+    "MEDIUM"
+  ) {
+    score++;
+
+    reasons.push(
+      "地缘政治风险需要关注"
+    );
+
+  } else if (
+    geo?.risk ===
+    "UNKNOWN"
+  ) {
+    reasons.push(
+      "地缘政治风险未知，不采用低风险假设"
+    );
+  }
+
+  score =
+    clamp(
+      score,
+      0,
+      10
+    );
+
+  const knownRiskLevel =
+    score >= 7
+      ? "HIGH"
+      : score >= 4
+        ? "MEDIUM"
+        : "LOW";
+
+  /*
+    V4.7.1 semantic safety:
+    if an important geopolitical component is UNKNOWN,
+    the overall risk must not simply display LOW.
+  */
+  const risk =
+    geo?.risk === "UNKNOWN" &&
+    knownRiskLevel === "LOW"
+      ? "UNCERTAIN"
+      : knownRiskLevel;
+
+  const posture =
+    knownRiskLevel === "HIGH"
+      ? "DEFENSIVE"
+      : knownRiskLevel === "MEDIUM"
+        ? "CAUTIOUS"
+        : geo?.risk === "UNKNOWN"
+          ? "CAUTIOUS"
+          : "NORMAL";
+
+  const reliability =
+    qualityData.confidence < 60
+      ? "LOW"
+      : qualityData.confidence < 90
+        ? "MEDIUM"
+        : "HIGH";
+
+  let signalPermission =
+    "NORMAL";
+
+  if (
+    qualityData.confidence < 60
+  ) {
+    signalPermission =
+      "CAUTION_ONLY";
+
+  } else if (
+    geo?.risk === "UNKNOWN"
+  ) {
+    signalPermission =
+      "REDUCED_CONFIDENCE";
+  }
+
+  return {
+    risk,
+
+    knownRiskLevel,
+
+    geopoliticalRisk:
+      geo?.risk ||
+      "UNKNOWN",
+
+    riskScore:
+      score,
+
+    posture,
+
+    postureCN:
+      posture === "DEFENSIVE"
+        ? "防御"
+        : posture === "CAUTIOUS"
+          ? "谨慎"
+          : "正常观察",
+
+    decisionReliability:
+      reliability,
+
+    signalPermission,
+
+    dataConfidence:
+      qualityData.confidence,
+
+    reasons,
+
+    messageCN:
+      risk === "UNCERTAIN"
+        ? "已知风险暂时较低，但地缘政治情报不足，因此总体状态保持不确定并降低信号置信度"
+        : risk === "HIGH"
+          ? "综合风险较高，应优先控制风险并等待更清晰确认"
+          : risk === "MEDIUM"
+            ? "综合风险中等，建议保持谨慎并等待确认"
+            : "综合风险暂时较低，但仍需结合市场确认"
+  };
+}
+
+/* =========================================================
+   DECISION CONTEXT
+========================================================= */
+
+function decisionContext(
+  market,
+  context,
+  macro,
+  events,
+  geo,
+  globalRisk
+) {
+  const zec =
+    market.ZEC;
+
+  if (!zec) {
+    return {
+      action:
+        "DATA UNAVAILABLE",
+
+      actionCN:
+        "市场数据不足",
+
+      trend:
+        "UNKNOWN",
+
+      setupScore:
+        0,
+
+      entryQuality:
+        0,
+
+      chaseRisk:
+        "UNKNOWN",
+
+      reasons: [
+        "ZEC市场数据不可用"
+      ]
+    };
+  }
+
+  let bear = 0;
+  let bull = 0;
+
+  const reasons = [];
+
+  if (
+    zec.change24h != null
+  ) {
+    if (
+      zec.change24h <= -4
+    ) {
+      bear += 3;
+
+      reasons.push(
+        "ZEC 24小时下跌动能较强"
+      );
+
+    } else if (
+      zec.change24h < 0
+    ) {
+      bear++;
+
+      reasons.push(
+        "ZEC 24小时动能偏弱"
+      );
+
+    } else if (
+      zec.change24h >= 4
+    ) {
+      bull += 3;
+
+      reasons.push(
+        "ZEC 24小时上涨动能较强"
+      );
+
+    } else if (
+      zec.change24h > 0
+    ) {
+      bull++;
+    }
+  }
+
+  if (
+    context.relativeStrength ===
+    "WEAK"
+  ) {
+    bear += 2;
+
+    reasons.push(
+      "ZEC表现弱于BTC和ETH"
+    );
+  }
+
+  if (
+    context.relativeStrength ===
+    "STRONG"
+  ) {
+    bull += 2;
+
+    reasons.push(
+      "ZEC表现强于BTC和ETH"
+    );
+  }
+
+  if (
+    macro?.regime ===
+    "RISK_OFF"
+  ) {
+    bear += 2;
+
+    reasons.push(
+      "宏观环境偏向风险规避"
+    );
+  }
+
+  if (
+    macro?.regime ===
+    "RISK_ON"
+  ) {
+    bull++;
+  }
+
+  const trend =
+    bear >= bull + 2
+      ? "BEARISH"
+      : bull >= bear + 2
+        ? "BULLISH"
+        : "NEUTRAL";
+
+  let setup =
+    clamp(
+      35 +
+      Math.abs(
+        bear - bull
+      ) * 9,
+      0,
+      100
+    );
+
+  if (
+    trend === "NEUTRAL"
+  ) {
+    setup =
+      Math.min(
+        setup,
+        45
+      );
+  }
+
+  const move =
+    Math.abs(
+      zec.change24h || 0
+    );
+
+  const chaseRisk =
+    move >= 7
+      ? "HIGH"
+      : move >= 4
+        ? "MEDIUM"
+        : "LOW";
+
+  let entryQuality = 70;
+
+  if (
+    chaseRisk ===
+    "MEDIUM"
+  ) {
+    entryQuality -= 20;
+  }
+
+  if (
+    chaseRisk ===
+    "HIGH"
+  ) {
+    entryQuality -= 40;
+  }
+
+  if (
+    globalRisk.knownRiskLevel ===
+    "HIGH"
+  ) {
+    entryQuality -= 20;
+  }
+
+  if (
+    globalRisk.knownRiskLevel ===
+    "MEDIUM"
+  ) {
+    entryQuality -= 10;
+  }
+
+  if (
+    geo?.risk ===
+    "UNKNOWN"
+  ) {
+    entryQuality -= 5;
+  }
+
+  if (
+    events?.risk ===
+    "HIGH"
+  ) {
+    entryQuality -= 10;
+  }
+
+  entryQuality =
+    clamp(
+      entryQuality,
+      0,
+      100
+    );
+
+  let action =
+    "WAIT FOR CONFIRMATION";
+
+  let actionCN =
+    "等待确认";
+
+  if (
+    trend === "BULLISH" &&
+    setup >= 70 &&
+    entryQuality >= 70 &&
+    globalRisk.knownRiskLevel !== "HIGH" &&
+    globalRisk.signalPermission === "NORMAL"
+  ) {
+    action =
+      "BULLISH SETUP";
+
+    actionCN =
+      "看涨条件正在形成";
+  }
+
+  if (
+    trend === "BEARISH" &&
+    setup >= 70 &&
+    entryQuality >= 70 &&
+    globalRisk.knownRiskLevel !== "HIGH" &&
+    globalRisk.signalPermission === "NORMAL"
+  ) {
+    action =
+      "BEARISH SETUP";
+
+    actionCN =
+      "看跌条件正在形成";
+  }
+
+  if (
+    chaseRisk === "HIGH"
+  ) {
+    action =
+      "WAIT FOR CONFIRMATION";
+
+    actionCN =
+      "避免追涨杀跌，等待确认";
+  }
+
+  if (
+    globalRisk.signalPermission ===
+    "CAUTION_ONLY"
+  ) {
+    action =
+      "WAIT FOR CONFIRMATION";
+
+    actionCN =
+      "数据不足，等待更多确认";
+  }
+
+  if (
+    globalRisk.signalPermission ===
+    "REDUCED_CONFIDENCE" &&
+    (
+      action ===
+        "BULLISH SETUP" ||
+      action ===
+        "BEARISH SETUP"
+    )
+  ) {
+    action =
+      "WAIT FOR CONFIRMATION";
+
+    actionCN =
+      "部分情报仍不确定，等待确认";
+  }
+
+  return {
+    action,
+    actionCN,
+    trend,
+
+    setupScore:
+      Math.round(
+        setup
+      ),
+
+    entryQuality:
+      Math.round(
+        entryQuality
+      ),
+
+    chaseRisk,
+
+    reasons,
+
+    methodologyCN:
+      "趋势与入场行动分开判断；强趋势并不代表应该立即追单。"
+  };
+}
+
+/* =========================================================
+   FALLBACKS
+========================================================= */
+
+const marketFallback = {
+  market: {
+    ZEC: null,
+    BTC: null,
+    ETH: null
+  },
+
+  context: {
+    regime:
+      "UNKNOWN",
+
+    score:
+      0,
+
+    relativeStrength:
+      "UNKNOWN"
+  }
+};
+
+const macroFallback = {
+  ok: false,
+
+  status:
+    "TIME_BUDGET_EXCEEDED",
+
+  risk:
+    "UNKNOWN",
+
+  regime:
+    "UNKNOWN",
+
+  messageCN:
+    "综合分析时间预算内未完成宏观数据读取，风险保持未知。"
+};
+
+const eventsFallback = {
+  ok: false,
+
+  status:
+    "TIME_BUDGET_EXCEEDED",
+
+  risk:
+    "UNKNOWN",
+
+  score:
+    null,
+
+  events:
+    [],
+
+  messageCN:
+    "综合分析时间预算内未完成事件数据读取，风险保持未知。"
+};
+
+const geoFallback = {
+  ok: false,
+
+  status:
+    "TIME_BUDGET_EXCEEDED",
+
+  dataAvailable:
+    false,
+
+  source:
+    "MULTI_SOURCE",
+
+  risk:
+    "UNKNOWN",
+
+  score:
+    null,
+
+  confidence:
+    0,
+
+  sourceCount:
+    0,
+
+  articleCount:
+    0,
+
+  reasons: [
+    "Geopolitical intelligence exceeded the intelligence time budget."
+  ],
+
+  groups:
+    [],
+
+  headlines:
+    [],
+
+  sources:
+    [],
+
+  errors: [
+    "TIME_BUDGET_EXCEEDED"
+  ],
+
+  messageCN:
+    "地缘政治情报超过综合分析时间预算，因此风险保持未知。"
+};
+
+/* =========================================================
+   INTELLIGENCE
+========================================================= */
+
+async function intelligence(env) {
+  const started =
+    Date.now();
+
+  const tasks = [
+    Promise.race([
+      marketData(),
+
+      timeoutValue(
+        7000,
+        marketFallback
+      )
+    ]),
+
+    Promise.race([
+      macroData(
+        env,
+        true
+      ),
+
+      timeoutValue(
+        9000,
+        macroFallback
+      )
+    ]),
+
+    Promise.race([
+      eventData(
+        env,
+        true
+      ),
+
+      timeoutValue(
+        9000,
+        eventsFallback
+      )
+    ]),
+
+    Promise.race([
+      geopoliticalData({
+        fast: true
+      }),
+
+      timeoutValue(
+        3200,
+        geoFallback
+      )
+    ])
+  ];
+
+  const [
+    marketResult,
+    macro,
+    events,
+    geo
+  ] =
+    await Promise.all(
+      tasks
+    );
+
+  const dataQuality =
+    quality(
+      marketResult.market,
+      macro,
+      events,
+      geo
+    );
+
+  const globalRisk =
+    fusion(
+      marketResult.context,
+      macro,
+      events,
+      geo,
+      dataQuality
+    );
+
+  const decision =
+    decisionContext(
+      marketResult.market,
+      marketResult.context,
+      macro,
+      events,
+      geo,
+      globalRisk
+    );
+
+  return {
+    ok:
+      Boolean(
+        marketResult
+          .market
+          .ZEC
+      ),
+
+    service:
+      "ZEC AI Intelligence",
+
+    version:
+      VERSION,
+
+    mission:
+      "V4.7.1 Multi-Source Geopolitical Intelligence",
+
+    language:
+      "zh-CN",
+
+    timestamp:
+      new Date()
+        .toISOString(),
+
+    elapsedMs:
+      Date.now() -
+      started,
+
+    intelligenceTimeBudgetSeconds:
+      10,
+
+    market:
+      marketResult.market,
+
+    marketContext:
+      marketResult.context,
+
+    decision,
+
+    macro,
+
+    events,
+
+    geopolitical:
+      geo,
+
+    dataQuality,
+
+    globalRisk,
+
+    disclaimerCN:
+      "仅用于市场研究及模拟分析，不构成投资建议。",
+
+    disclaimer:
+      "Market research and simulation only. Not investment advice."
+  };
+}
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+function status(env) {
+  return {
+    ok:
+      true,
+
+    service:
+      "ZEC AI Intelligence",
+
+    version:
+      VERSION,
+
+    mission:
+      "V4.7.1 Multi-Source Geopolitical Intelligence",
+
+    status:
+      "ONLINE",
+
+    language:
+      "zh-CN",
+
+    architecture:
+      "Cloudflare Worker Multi-Source Intelligence Gateway",
+
+    modules: {
+      coinLoreMarket:
+        "ACTIVE",
+
+      binanceFallback:
+        "ACTIVE",
+
+      btcContext:
+        "ACTIVE",
+
+      ethContext:
+        "ACTIVE",
+
+      fredMacro:
+        env.FRED_API_KEY
+          ? "ACTIVE"
+          : "NOT CONFIGURED",
+
+      economicEventRadar:
+        env.FRED_API_KEY
+          ? "ACTIVE · DEDUPED"
+          : "NOT CONFIGURED",
+
+      fomcCalendar:
+        "ACTIVE · OFFICIAL 2026 CALENDAR",
+
+      googleNewsGeopolitical:
+        "ACTIVE · PRIMARY AGGREGATION",
+
+      gdeltGeopolitical:
+        "ACTIVE · FALLBACK",
+
+      geopoliticalEngine:
+        "ACTIVE · MULTI-SOURCE",
+
+      geopoliticalCrossValidation:
+        "ACTIVE",
+
+      dataQualityEngine:
+        "ACTIVE",
+
+      globalRiskFusion:
+        "ACTIVE · UNCERTAIN PROTECTION",
+
+      chineseIntelligence:
+        "ACTIVE",
+
+      decisionContext:
+        "ACTIVE",
+
+      intelligenceDeadline:
+        "ACTIVE"
+    },
+
+    policies: {
+      fredStandalone:
+        "SEQUENTIAL",
+
+      economicEvents:
+        "NEAREST EVENT PER FRED RELEASE FAMILY",
+
+      fomc:
+        "SEPARATE FROM FRED RELEASE DATES",
+
+      geopoliticalArchitecture:
+        "MULTI_SOURCE",
+
+      geopoliticalPrimary:
+        "GOOGLE_NEWS_RSS_AGGREGATION",
+
+      geopoliticalFallback:
+        "GDELT",
+
+      geopoliticalLowRequiresConfidence:
+        true,
+
+      geopoliticalFailure:
+        "UNKNOWN",
+
+      unavailableRisk:
+        "UNKNOWN",
+
+      unavailableIsLow:
+        false,
+
+      unknownGlobalRiskProtection:
+        "UNCERTAIN",
+
+      forcedBuySell:
+        false
+    },
+
+    fredSecretConfigured:
+      Boolean(
+        env.FRED_API_KEY
+      ),
+
+    messageCN:
+      "ZEC AI Intelligence V4.7.1运行正常",
+
+    timestamp:
+      new Date()
+        .toISOString(),
+
+    disclaimerCN:
+      "仅用于市场研究及模拟分析，不构成投资建议。"
+  };
+}
+
+/* =========================================================
+   ROUTER
+========================================================= */
+
+export default {
+  async fetch(
+    request,
+    env
+  ) {
+    if (
+      request.method ===
+      "OPTIONS"
+    ) {
+      return new Response(
+        null,
+        {
+          status: 204,
+          headers: HEADERS
+        }
+      );
+    }
+
+    const url =
+      new URL(
+        request.url
+      );
+
+    try {
+      if (
+        url.pathname === "/" ||
+        url.pathname ===
+          "/status"
+      ) {
+        return reply(
+          status(env)
+        );
+      }
+
+      if (
+        url.pathname ===
+        "/market"
+      ) {
+        const result =
+          await marketData();
+
+        return reply({
+          ok: true,
+
+          version:
+            VERSION,
+
+          timestamp:
+            new Date()
+              .toISOString(),
+
+          ...result
+        });
+      }
+
+      if (
+        url.pathname ===
+        "/macro"
+      ) {
+        return reply(
+          await macroData(
+            env
+          )
+        );
+      }
+
+      if (
+        url.pathname ===
+        "/events"
+      ) {
+        return reply(
+          await eventData(
+            env
+          )
+        );
+      }
+
+      if (
+        url.pathname ===
+        "/geopolitical"
+      ) {
+        return reply(
+          await geopoliticalData({
+            fast: false
+          })
+        );
+      }
+
+      if (
+        url.pathname ===
+        "/intelligence"
+      ) {
+        return reply(
+          await intelligence(
+            env
+          )
+        );
+      }
+
+      if (
+        url.pathname ===
+        "/fred-test"
+      ) {
+        if (
+          !env.FRED_API_KEY
+        ) {
+          return reply(
+            {
+              ok:
+                false,
+
+              version:
+                VERSION,
+
+              test:
+                "FRED_SINGLE_SERIES",
+
+              error:
+                "FRED_API_KEY_NOT_CONFIGURED"
+            },
+            500
+          );
+        }
+
+        const started =
+          Date.now();
+
+        try {
+          const result =
+            await fredSeries(
+              "DGS10",
+              env.FRED_API_KEY
+            );
+
+          return reply({
+            ok:
+              true,
+
+            version:
+              VERSION,
+
+            test:
+              "FRED_SINGLE_SERIES",
+
+            elapsedMs:
+              Date.now() -
+              started,
+
+            result
+          });
+
+        } catch (err) {
+          return reply(
+            {
+              ok:
+                false,
+
+              version:
+                VERSION,
+
+              test:
+                "FRED_SINGLE_SERIES",
+
+              elapsedMs:
+                Date.now() -
+                started,
+
+              error:
+                err.message
+            },
+            502
+          );
+        }
+      }
+
+      return reply(
+        {
+          ok:
+            false,
+
+          version:
+            VERSION,
+
+          error:
+            "Route not found",
+
+          messageCN:
+            "找不到此接口",
+
+          availableRoutes: [
+            "/",
+            "/status",
+            "/market",
+            "/macro",
+            "/events",
+            "/geopolitical",
+            "/intelligence",
+            "/fred-test"
+          ]
+        },
+        404
+      );
+
+    } catch (err) {
+      return reply(
+        {
+          ok:
+            false,
+
+          version:
+            VERSION,
+
+          timestamp:
+            new Date()
+              .toISOString(),
+
+          error:
+            err?.message ||
+            String(err),
+
+          messageCN:
+            "系统发生异常，但安全机制已经阻止错误数据被当作正常信号。"
+        },
+        500
+      );
+    }
+  }
+};
