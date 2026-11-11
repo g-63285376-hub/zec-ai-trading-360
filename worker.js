@@ -1,10 +1,15 @@
-/* ZEC AI Intelligence Worker V4.7.2
+/* =========================================================
+   ZEC AI Intelligence Worker V4.8.0
+   Workers AI Foundation
    Persistent KV Intelligence Cache
    Multi-Source Geopolitical Intelligence
-   Market research & simulation only.
-*/
+   Market Research & Simulation Only
+========================================================= */
 
-const VERSION = "4.7.2";
+const VERSION = "4.8.0";
+
+const AI_MODEL =
+  "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 const HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -50,10 +55,6 @@ const RELEASES = [
   }
 ];
 
-/*
-  Official scheduled 2026 FOMC decision dates.
-  FRED release dates are NOT treated as FOMC meetings.
-*/
 const FOMC_2026 = [
   { start: "2026-01-27", date: "2026-01-28" },
   { start: "2026-03-17", date: "2026-03-18" },
@@ -74,7 +75,7 @@ const KV_KEYS = {
 };
 
 const GEO_CACHE_MAX_AGE_MS =
-  6 * 60 * 60 * 1000; // 6 hours
+  6 * 60 * 60 * 1000;
 
 async function kvGet(env, key) {
   try {
@@ -247,10 +248,7 @@ function clamp(v, min, max) {
 function sleep(ms) {
   return new Promise(
     resolve =>
-      setTimeout(
-        resolve,
-        ms
-      )
+      setTimeout(resolve, ms)
   );
 }
 
@@ -307,10 +305,7 @@ function xmlValue(block, tag) {
 
 function xmlLink(block) {
   const direct =
-    xmlValue(
-      block,
-      "link"
-    );
+    xmlValue(block, "link");
 
   if (direct) return direct;
 
@@ -430,9 +425,8 @@ async function getJSON(
 
   } catch (err) {
     if (
-      err &&
-      err.name ===
-        "AbortError"
+      err?.name ===
+      "AbortError"
     ) {
       throw new Error(
         "TIMEOUT"
@@ -488,9 +482,8 @@ async function getText(
 
   } catch (err) {
     if (
-      err &&
-      err.name ===
-        "AbortError"
+      err?.name ===
+      "AbortError"
     ) {
       throw new Error(
         "TIMEOUT"
@@ -570,10 +563,7 @@ async function binance(symbol) {
   let lastError =
     "Binance unavailable";
 
-  for (
-    const host of
-    BINANCE
-  ) {
+  for (const host of BINANCE) {
     try {
       const x =
         await getJSON(
@@ -617,22 +607,16 @@ async function binance(symbol) {
     }
   }
 
-  throw new Error(
-    lastError
-  );
+  throw new Error(lastError);
 }
 
 async function asset(symbol) {
   try {
-    return await coinLore(
-      symbol
-    );
+    return await coinLore(symbol);
 
   } catch (err) {
     const x =
-      await binance(
-        symbol
-      );
+      await binance(symbol);
 
     x.fallbackReason =
       err?.message ||
@@ -998,7 +982,8 @@ async function macroData(
 
       indicators,
 
-      successfulSeries: 0,
+      successfulSeries:
+        0,
 
       totalSeries:
         total,
@@ -1174,10 +1159,7 @@ function nearestPerReleaseFamily(
           )
       );
 
-  for (
-    const event of
-    sorted
-  ) {
+  for (const event of sorted) {
     if (
       !map.has(
         event.family
@@ -1249,10 +1231,7 @@ function eventRiskScore(events) {
 
   const reasons = [];
 
-  for (
-    const event of
-    events
-  ) {
+  for (const event of events) {
     if (
       event.daysAway < 0
     ) {
@@ -1321,18 +1300,13 @@ async function eventData(
   if (!env.FRED_API_KEY) {
     return {
       ok: false,
-
       status:
         "NOT_CONFIGURED",
-
       risk:
         "UNKNOWN",
-
       score:
         null,
-
       events: [],
-
       messageCN:
         "经济事件雷达未配置"
     };
@@ -1342,10 +1316,7 @@ async function eventData(
 
   const errors = [];
 
-  for (
-    const release of
-    RELEASES
-  ) {
+  for (const release of RELEASES) {
     try {
       const dates =
         await releaseDates(
@@ -1419,9 +1390,7 @@ async function eventData(
   }
 
   const analysis =
-    eventRiskScore(
-      events
-    );
+    eventRiskScore(events);
 
   return {
     ok: true,
@@ -1439,7 +1408,8 @@ async function eventData(
         ? "FAST_SEQUENTIAL"
         : "SEQUENTIAL",
 
-    horizonDays: 45,
+    horizonDays:
+      45,
 
     risk:
       analysis.risk,
@@ -1574,10 +1544,7 @@ function geoGroups(items) {
 
     const headlines = [];
 
-    for (
-      const item of
-      items
-    ) {
+    for (const item of items) {
       const text =
         normalizeTitle(
           item.title
@@ -1662,7 +1629,7 @@ function analyzeGeo(
   const grouped =
     geoGroups(items);
 
-  let score =
+  const score =
     clamp(
       grouped.rawScore,
       0,
@@ -1712,10 +1679,6 @@ function analyzeGeo(
         ? "MEDIUM"
         : "LOW";
 
-  /*
-    LOW requires enough evidence.
-    Insufficient evidence is UNKNOWN.
-  */
   if (
     risk === "LOW" &&
     (
@@ -1730,9 +1693,7 @@ function analyzeGeo(
 
   const reasons = [];
 
-  if (
-    risk === "HIGH"
-  ) {
+  if (risk === "HIGH") {
     reasons.push(
       "多来源新闻出现较强的战争、制裁、能源、贸易或航运风险信号"
     );
@@ -1772,10 +1733,7 @@ function dedupeArticles(items) {
   const map =
     new Map();
 
-  for (
-    const item of
-    items
-  ) {
+  for (const item of items) {
     const key =
       normalizeTitle(
         item.title
@@ -1799,9 +1757,7 @@ function dedupeArticles(items) {
   ];
 }
 
-async function googleGeo(
-  timeout
-) {
+async function googleGeo(timeout) {
   const url =
     "https://news.google.com/rss/search?" +
     new URLSearchParams({
@@ -1833,9 +1789,7 @@ async function googleGeo(
     .slice(0, 30);
 }
 
-async function gdeltGeo(
-  timeout
-) {
+async function gdeltGeo(timeout) {
   const params =
     new URLSearchParams({
       query:
@@ -1907,10 +1861,6 @@ async function liveGeopoliticalData(
   const sources = [];
   const articles = [];
 
-  /*
-    Fast mode is used by /intelligence.
-    Standalone /geopolitical gets slightly longer time.
-  */
   const googleTimeout =
     fast
       ? 1700
@@ -1959,10 +1909,6 @@ async function liveGeopoliticalData(
     });
   }
 
-  /*
-    GDELT acts as cross-validation / fallback.
-    In fast mode it is attempted only if time permits.
-  */
   try {
     const gdelt =
       await gdeltGeo(
@@ -2169,10 +2115,6 @@ async function geopoliticalData(
       fast
     );
 
-  /*
-    Reliable live result:
-    save to persistent KV.
-  */
   if (
     live.ok &&
     live.dataAvailable &&
@@ -2196,10 +2138,6 @@ async function geopoliticalData(
     };
   }
 
-  /*
-    Live data exists but confidence is insufficient.
-    We do NOT overwrite a previous reliable cache.
-  */
   if (
     live.ok &&
     live.dataAvailable &&
@@ -2241,10 +2179,6 @@ async function geopoliticalData(
     };
   }
 
-  /*
-    Live sources unavailable:
-    try persistent KV.
-  */
   const cached =
     await loadGeoCache(
       env
@@ -2265,10 +2199,6 @@ async function geopoliticalData(
     };
   }
 
-  /*
-    No live data + no acceptable cache.
-    UNKNOWN is mandatory.
-  */
   return {
     ...live,
 
@@ -2913,9 +2843,7 @@ function decisionContext(
     trend,
 
     setupScore:
-      Math.round(
-        setup
-      ),
+      Math.round(setup),
 
     entryQuality:
       Math.round(
@@ -2994,6 +2922,12 @@ const geoFallback = {
     "TIME_BUDGET_EXCEEDED",
 
   dataAvailable:
+    false,
+
+  live:
+    false,
+
+  cacheUsed:
     false,
 
   source:
@@ -3093,9 +3027,7 @@ async function intelligence(env) {
     events,
     geo
   ] =
-    await Promise.all(
-      tasks
-    );
+    await Promise.all(tasks);
 
   const dataQuality =
     quality(
@@ -3139,7 +3071,7 @@ async function intelligence(env) {
       VERSION,
 
     mission:
-      "V4.7.2 Persistent KV Intelligence Cache",
+      "V4.8.0 Workers AI Foundation + Persistent KV Intelligence Cache",
 
     language:
       "zh-CN",
@@ -3180,6 +3112,153 @@ async function intelligence(env) {
 }
 
 /* =========================================================
+   WORKERS AI TEST
+========================================================= */
+
+async function aiTest(env) {
+  const started =
+    Date.now();
+
+  if (!env.AI) {
+    return {
+      ok: false,
+
+      version:
+        VERSION,
+
+      test:
+        "WORKERS_AI",
+
+      binding:
+        "AI",
+
+      status:
+        "NOT_BOUND",
+
+      model:
+        AI_MODEL,
+
+      elapsedMs:
+        Date.now() -
+        started,
+
+      messageCN:
+        "Workers AI Binding 尚未连接。"
+    };
+  }
+
+  try {
+    const result =
+      await env.AI.run(
+        AI_MODEL,
+        {
+          messages: [
+            {
+              role:
+                "system",
+
+              content:
+                "You are a connectivity test for ZEC AI Intelligence. Follow the user's instruction exactly. Do not provide financial advice."
+            },
+            {
+              role:
+                "user",
+
+              content:
+                "Return exactly this text and nothing else: ZEC_AI_WORKERS_AI_OK"
+            }
+          ],
+
+          max_tokens:
+            32,
+
+          temperature:
+            0
+        }
+      );
+
+    const response =
+      typeof result?.response ===
+        "string"
+        ? result.response.trim()
+        : "";
+
+    const passed =
+      response.includes(
+        "ZEC_AI_WORKERS_AI_OK"
+      );
+
+    return {
+      ok:
+        passed,
+
+      version:
+        VERSION,
+
+      test:
+        "WORKERS_AI",
+
+      binding:
+        "AI",
+
+      status:
+        passed
+          ? "OK"
+          : "UNEXPECTED_RESPONSE",
+
+      model:
+        AI_MODEL,
+
+      elapsedMs:
+        Date.now() -
+        started,
+
+      response,
+
+      usage:
+        result?.usage ||
+        null,
+
+      messageCN:
+        passed
+          ? "Workers AI 调用成功。"
+          : "Workers AI 已响应，但测试文字与预期不完全一致。"
+    };
+
+  } catch (err) {
+    return {
+      ok: false,
+
+      version:
+        VERSION,
+
+      test:
+        "WORKERS_AI",
+
+      binding:
+        "AI",
+
+      status:
+        "ERROR",
+
+      model:
+        AI_MODEL,
+
+      elapsedMs:
+        Date.now() -
+        started,
+
+      error:
+        err?.message ||
+        String(err),
+
+      messageCN:
+        "Workers AI 调用失败。"
+    };
+  }
+}
+
+/* =========================================================
    STATUS
 ========================================================= */
 
@@ -3194,7 +3273,7 @@ function status(env) {
       VERSION,
 
     mission:
-      "V4.7.2 Persistent KV Intelligence Cache",
+      "V4.8.0 Workers AI Foundation + Persistent KV Intelligence Cache",
 
     status:
       "ONLINE",
@@ -3203,7 +3282,7 @@ function status(env) {
       "zh-CN",
 
     architecture:
-      "Cloudflare Worker Multi-Source Intelligence Gateway",
+      "Cloudflare Worker Multi-Source Intelligence Gateway + Workers AI",
 
     modules: {
       coinLoreMarket:
@@ -3251,6 +3330,11 @@ function status(env) {
       staleCacheFallback:
         env.INTEL_KV
           ? "ACTIVE"
+          : "NOT BOUND",
+
+      workersAI:
+        env.AI
+          ? "ACTIVE · TEST READY"
           : "NOT BOUND",
 
       dataQualityEngine:
@@ -3309,6 +3393,12 @@ function status(env) {
       unknownGlobalRiskProtection:
         "UNCERTAIN",
 
+      workersAI:
+        "CONNECTIVITY_TEST_ONLY",
+
+      aiCanForceBuySell:
+        false,
+
       forcedBuySell:
         false
     },
@@ -3323,8 +3413,13 @@ function status(env) {
         env.INTEL_KV
       ),
 
+    workersAIConfigured:
+      Boolean(
+        env.AI
+      ),
+
     messageCN:
-      "ZEC AI Intelligence V4.7.2运行正常",
+      "ZEC AI Intelligence V4.8.0运行正常",
 
     timestamp:
       new Date()
@@ -3557,12 +3652,25 @@ export default {
 
       if (
         url.pathname ===
+          "/ai-test"
+      ) {
+        const result =
+          await aiTest(env);
+
+        return reply(
+          result,
+          result.ok
+            ? 200
+            : 502
+        );
+      }
+
+      if (
+        url.pathname ===
           "/kv-test"
       ) {
         return reply(
-          await kvTest(
-            env
-          )
+          await kvTest(env)
         );
       }
 
@@ -3661,6 +3769,7 @@ export default {
             "/events",
             "/geopolitical",
             "/intelligence",
+            "/ai-test",
             "/kv-test",
             "/fred-test"
           ]
