@@ -1,11 +1,14 @@
 /*
- ZEC AI Intelligence Worker V4.5.3
+ ZEC AI Intelligence Worker V4.6.0
+ Chinese Intelligence Mission
  Sequential FRED Macro Engine
+ Economic Event Radar
  Fast-Fail Geopolitical Engine
+ Global Risk Fusion
  Research & simulation only.
 */
 
-const VERSION="4.5.3";
+const VERSION="4.6.0";
 
 const HEADERS={
   "Access-Control-Allow-Origin":"*",
@@ -44,6 +47,10 @@ function sleep(ms){
   return new Promise(resolve=>setTimeout(resolve,ms));
 }
 
+/* =========================================================
+   HTTP
+========================================================= */
+
 async function getJSON(url,timeout=7000){
   const controller=new AbortController();
   const timer=setTimeout(
@@ -52,42 +59,48 @@ async function getJSON(url,timeout=7000){
   );
 
   try{
-    const r=await fetch(url,{
-      method:"GET",
-      signal:controller.signal,
-      headers:{
-        "Accept":"application/json",
-        "User-Agent":"ZEC-AI-Intelligence/4.5.3"
+    const response=await fetch(
+      url,
+      {
+        signal:controller.signal,
+        headers:{
+          "Accept":"application/json",
+          "User-Agent":"ZEC-AI-Intelligence/4.6.0"
+        }
       }
-    });
+    );
 
-    if(!r.ok){
-      const e=new Error(`HTTP ${r.status}`);
-      e.status=r.status;
-      throw e;
+    if(!response.ok){
+      const error=new Error(
+        `HTTP ${response.status}`
+      );
+
+      error.status=response.status;
+      throw error;
     }
 
-    return await r.json();
+    return await response.json();
 
-  }catch(e){
+  }catch(error){
 
-    if(e?.name==="AbortError"){
-      const t=new Error("TIMEOUT");
-      t.code="TIMEOUT";
-      throw t;
+    if(error.name==="AbortError"){
+      const timeoutError=
+        new Error("TIMEOUT");
+
+      timeoutError.code="TIMEOUT";
+      throw timeoutError;
     }
 
-    throw e;
+    throw error;
 
   }finally{
     clearTimeout(timer);
   }
 }
 
-
 /* =========================================================
    MARKET
-   ========================================================= */
+========================================================= */
 
 async function coinLore(symbol){
 
@@ -96,8 +109,13 @@ async function coinLore(symbol){
     6000
   );
 
-  if(!Array.isArray(data)||!data[0]){
-    throw new Error("CoinLore invalid response");
+  if(
+    !Array.isArray(data) ||
+    !data[0]
+  ){
+    throw new Error(
+      "CoinLore invalid response"
+    );
   }
 
   const x=data[0];
@@ -114,17 +132,15 @@ async function coinLore(symbol){
   };
 }
 
-
 const BINANCE=[
   "https://data-api.binance.vision",
   "https://api.binance.com",
   "https://api1.binance.com"
 ];
 
-
 async function binance(symbol){
 
-  let last="";
+  let lastError="";
 
   for(const host of BINANCE){
 
@@ -146,43 +162,49 @@ async function binance(symbol){
         source:"Binance"
       };
 
-    }catch(e){
-      last=e?.message||String(e);
+    }catch(error){
+      lastError=error.message;
     }
   }
 
-  throw new Error(last||"Binance unavailable");
+  throw new Error(
+    lastError || "Binance unavailable"
+  );
 }
-
 
 async function asset(symbol){
 
   try{
     return await coinLore(symbol);
 
-  }catch(e){
+  }catch(error){
 
     const x=await binance(symbol);
 
     x.fallbackReason=
-      e?.message||String(e);
+      error.message;
 
     return x;
   }
 }
 
-
-function marketContext(zec,btc,eth){
+function marketContext(
+  zec,
+  btc,
+  eth
+){
 
   let score=0;
 
   if(btc?.change24h>0) score++;
   if(btc?.change24h>=2) score++;
+
   if(btc?.change24h<0) score--;
   if(btc?.change24h<=-2) score--;
 
   if(eth?.change24h>0) score++;
   if(eth?.change24h>=2) score++;
+
   if(eth?.change24h<0) score--;
   if(eth?.change24h<=-2) score--;
 
@@ -205,10 +227,14 @@ function marketContext(zec,btc,eth){
   ){
 
     const benchmark=
-      (btc.change24h+eth.change24h)/2;
+      (
+        btc.change24h+
+        eth.change24h
+      )/2;
 
     const relative=
-      zec.change24h-benchmark;
+      zec.change24h-
+      benchmark;
 
     if(relative>=2){
       relativeStrength="STRONG";
@@ -226,7 +252,6 @@ function marketContext(zec,btc,eth){
   };
 }
 
-
 async function marketData(){
 
   const results=
@@ -239,38 +264,34 @@ async function marketData(){
   const market={
 
     ZEC:
-      results[0].status==="fulfilled"?
-      results[0].value:
-      null,
+      results[0].status==="fulfilled"
+        ?results[0].value
+        :null,
 
     BTC:
-      results[1].status==="fulfilled"?
-      results[1].value:
-      null,
+      results[1].status==="fulfilled"
+        ?results[1].value
+        :null,
 
     ETH:
-      results[2].status==="fulfilled"?
-      results[2].value:
-      null
+      results[2].status==="fulfilled"
+        ?results[2].value
+        :null
   };
 
   return {
     market,
-    context:
-      marketContext(
-        market.ZEC,
-        market.BTC,
-        market.ETH
-      )
+    context:marketContext(
+      market.ZEC,
+      market.BTC,
+      market.ETH
+    )
   };
 }
 
-
 /* =========================================================
    FRED MACRO
-   V4.5.3:
-   Sequential requests instead of six simultaneous requests.
-   ========================================================= */
+========================================================= */
 
 const FRED={
 
@@ -293,33 +314,33 @@ const FRED={
     "US Unemployment"
 };
 
+async function fredSeries(
+  id,
+  key
+){
 
-async function fredSeries(id,key){
+  const params=
+    new URLSearchParams({
+      series_id:id,
+      api_key:key,
+      file_type:"json",
+      sort_order:"desc",
+      limit:"5"
+    });
 
-  const p=new URLSearchParams({
-    series_id:id,
-    api_key:key,
-    file_type:"json",
-    sort_order:"desc",
-    limit:"5"
-  });
-
-  const endpoint=
-    "https://api.stlouisfed.org"+
-    "/fred/series/observations?"+
-    p.toString();
-
-  const d=await getJSON(
-    endpoint,
+  const data=await getJSON(
+    `https://api.stlouisfed.org/fred/series/observations?${params}`,
     10000
   );
 
   const valid=
-    (d.observations||[])
+    (data.observations||[])
     .filter(
       x=>
         x.value!=="." &&
-        Number.isFinite(Number(x.value))
+        Number.isFinite(
+          Number(x.value)
+        )
     );
 
   if(!valid.length){
@@ -328,11 +349,8 @@ async function fredSeries(id,key){
     );
   }
 
-  const latest=
-    valid[0];
-
-  const previous=
-    valid[1];
+  const latest=valid[0];
+  const previous=valid[1];
 
   return {
 
@@ -347,168 +365,134 @@ async function fredSeries(id,key){
       latest.date,
 
     previousValue:
-      previous?
-      Number(previous.value):
-      null,
+      previous
+        ?Number(previous.value)
+        :null,
 
     change:
-      previous?
-      Number(latest.value)-
-      Number(previous.value):
-      null,
+      previous
+        ?Number(latest.value)-
+         Number(previous.value)
+        :null,
 
     source:"FRED"
   };
 }
 
-
-function macroAnalysis(i){
+function macroAnalysis(indicators){
 
   let score=0;
-
   const reasons=[];
 
-
-  if(i.DTWEXBGS?.change>0){
-
+  if(
+    indicators.DTWEXBGS?.change>0
+  ){
     score++;
 
     reasons.push(
-      "US dollar strengthening: crypto headwind"
+      "美元指数走强，对加密资产形成压力"
     );
   }
 
-
-  if(i.DTWEXBGS?.change<0){
-
+  if(
+    indicators.DTWEXBGS?.change<0
+  ){
     score--;
 
     reasons.push(
-      "US dollar easing: supportive for risk assets"
+      "美元指数回落，对风险资产相对有利"
     );
   }
 
-
-  if(i.VIXCLS?.value>=30){
+  if(
+    indicators.VIXCLS?.value>=30
+  ){
 
     score+=3;
 
     reasons.push(
-      "VIX above 30: elevated market stress"
+      "VIX高于30，市场压力显著升高"
     );
 
-  }else if(i.VIXCLS?.value>=20){
+  }else if(
+    indicators.VIXCLS?.value>=20
+  ){
 
     score+=2;
 
     reasons.push(
-      "VIX above 20: risk appetite cautious"
+      "VIX高于20，市场风险偏好谨慎"
     );
   }
 
-
-  if(i.DGS10?.change>=0.08){
+  if(
+    indicators.DGS10?.change>=0.08
+  ){
 
     score+=2;
 
     reasons.push(
-      "US 10Y yield rising"
+      "美国10年期国债收益率上升"
     );
   }
 
-
-  if(i.CPIAUCSL?.change>0){
+  if(
+    indicators.CPIAUCSL?.change>0
+  ){
 
     score++;
 
     reasons.push(
-      "Latest CPI index increased"
+      "最新CPI指数较前值上升"
     );
   }
 
-
   let regime="NEUTRAL";
-
   let risk="MEDIUM";
-
 
   if(score>=3){
 
     regime="RISK_OFF";
-
     risk="HIGH";
 
   }else if(score<=-2){
 
     regime="RISK_ON";
-
     risk="LOW";
   }
 
-
   return {
-
     regime,
-
     risk,
-
     riskScore:score,
-
     reasons
   };
 }
-
-
-/*
- IMPORTANT V4.5.3 FIX
-
- Previous version:
- Promise.allSettled() sent all FRED
- requests at almost the same moment.
-
- This version:
- fetches one FRED series at a time.
-*/
 
 async function macroData(env){
 
   if(!env.FRED_API_KEY){
 
     return {
-
       ok:false,
-
       status:"NOT_CONFIGURED",
-
-      source:"FRED",
-
       risk:"UNKNOWN",
-
       regime:"UNKNOWN",
-
-      indicators:{},
-
-      errors:[
-        "FRED_API_KEY_NOT_CONFIGURED"
-      ]
+      messageCN:
+        "FRED API密钥尚未配置"
     };
   }
 
-
   const indicators={};
-
   const errors=[];
 
-  const ids=
-    Object.keys(FRED);
+  /*
+   V4.6:
+   sequential requests reduce
+   upstream timeout/rate problems
+  */
 
-
-  for(let index=0;
-      index<ids.length;
-      index++){
-
-    const id=
-      ids[index];
+  for(const id of Object.keys(FRED)){
 
     try{
 
@@ -518,76 +502,47 @@ async function macroData(env){
           env.FRED_API_KEY
         );
 
-      indicators[id]=
-        result;
+      indicators[id]=result;
 
-    }catch(e){
+    }catch(error){
 
       errors.push(
-        `${id}: ${
-          e?.message||
-          String(e)
-        }`
+        `${id}: ${error.message}`
       );
     }
 
-
-    /*
-     Small delay reduces burst pressure
-     on the upstream FRED API.
-    */
-
-    if(index<ids.length-1){
-      await sleep(180);
-    }
+    await sleep(80);
   }
 
-
   const count=
-    Object.keys(
-      indicators
-    ).length;
-
+    Object.keys(indicators).length;
 
   if(!count){
 
     return {
-
       ok:false,
-
       status:"DATA_UNAVAILABLE",
-
-      source:"FRED",
-
       risk:"UNKNOWN",
-
       regime:"UNKNOWN",
-
       indicators,
-
       successfulSeries:0,
-
-      totalSeries:ids.length,
-
-      errors
+      totalSeries:
+        Object.keys(FRED).length,
+      errors,
+      messageCN:
+        "FRED宏观数据暂时不可用"
     };
   }
-
-
-  const analysis=
-    macroAnalysis(
-      indicators
-    );
-
 
   return {
 
     ok:true,
 
     status:
-      count===ids.length?
-      "OK":
-      "DEGRADED",
+      count===
+      Object.keys(FRED).length
+        ?"OK"
+        :"DEGRADED",
 
     source:"FRED",
 
@@ -598,48 +553,57 @@ async function macroData(env){
       count,
 
     totalSeries:
-      ids.length,
+      Object.keys(FRED).length,
 
-    ...analysis,
+    ...macroAnalysis(
+      indicators
+    ),
 
     indicators,
+    errors,
 
-    errors
+    messageCN:
+      count===
+      Object.keys(FRED).length
+        ?"宏观经济数据正常"
+        :"部分宏观数据暂时不可用"
   };
 }
 
-
 /* =========================================================
-   ECONOMIC EVENTS
-   ========================================================= */
+   ECONOMIC EVENT RADAR
+========================================================= */
 
 const RELEASES=[
 
   {
     id:10,
     name:"Consumer Price Index",
+    nameCN:"消费者价格指数 CPI",
     impact:"HIGH"
   },
 
   {
     id:50,
     name:"Employment Situation",
+    nameCN:"美国就业报告",
     impact:"HIGH"
   },
 
   {
     id:53,
     name:"Gross Domestic Product",
+    nameCN:"美国国内生产总值 GDP",
     impact:"HIGH"
   },
 
   {
     id:101,
     name:"Federal Reserve Release",
+    nameCN:"美联储相关数据发布",
     impact:"HIGH"
   }
 ];
-
 
 function today(){
 
@@ -648,27 +612,25 @@ function today(){
     .slice(0,10);
 }
 
-
 function daysAway(date){
 
   return Math.round(
-
     (
       Date.parse(
         `${date}T00:00:00Z`
-      )
-      -
+      )-
       Date.parse(
         `${today()}T00:00:00Z`
       )
-    )
-    /
+    )/
     86400000
   );
 }
 
-
-async function releaseDates(r,key){
+async function releaseDates(
+  release,
+  key
+){
 
   const end=
     new Date(
@@ -678,12 +640,11 @@ async function releaseDates(r,key){
     .toISOString()
     .slice(0,10);
 
-
-  const p=
+  const params=
     new URLSearchParams({
 
       release_id:
-        String(r.id),
+        String(release.id),
 
       api_key:key,
 
@@ -701,35 +662,36 @@ async function releaseDates(r,key){
       limit:"10"
     });
 
+  const data=await getJSON(
 
-  const d=
-    await getJSON(
+    `https://api.stlouisfed.org/fred/release/dates?${params}`,
 
-      "https://api.stlouisfed.org"+
-      "/fred/release/dates?"+
-      p.toString(),
-
-      10000
-    );
-
+    10000
+  );
 
   return (
-    d.release_dates||[]
+    data.release_dates||[]
   )
-  .map(
-    x=>x.date
-  )
+  .map(x=>x.date)
+
   .filter(
-    x=>x>=today()
+    date=>date>=today()
   )
+
   .map(
     date=>({
 
-      releaseId:r.id,
+      releaseId:
+        release.id,
 
-      name:r.name,
+      name:
+        release.name,
 
-      impact:r.impact,
+      nameCN:
+        release.nameCN,
+
+      impact:
+        release.impact,
 
       date,
 
@@ -741,99 +703,69 @@ async function releaseDates(r,key){
   );
 }
 
-
-/*
- Events are also changed to sequential
- requests for greater FRED reliability.
-*/
-
 async function eventData(env){
 
   if(!env.FRED_API_KEY){
 
     return {
-
       ok:false,
-
       status:"NOT_CONFIGURED",
-
-      source:"FRED",
-
       risk:"UNKNOWN",
-
       score:null,
-
-      events:[]
+      events:[],
+      messageCN:
+        "经济事件雷达未配置"
     };
   }
 
-
   let events=[];
-
   const errors=[];
 
-  let successCount=0;
+  /*
+   Sequential event requests
+  */
 
-
-  for(let i=0;
-      i<RELEASES.length;
-      i++){
-
-    const r=
-      RELEASES[i];
+  for(
+    const release of RELEASES
+  ){
 
     try{
 
-      const dates=
+      const data=
         await releaseDates(
-          r,
+          release,
           env.FRED_API_KEY
         );
 
-      events.push(
-        ...dates
-      );
+      events.push(...data);
 
-      successCount++;
-
-    }catch(e){
+    }catch(error){
 
       errors.push(
-        `${r.name}: ${
-          e?.message||
-          String(e)
-        }`
+        `${release.name}: ${error.message}`
       );
     }
 
-
-    if(i<RELEASES.length-1){
-      await sleep(180);
-    }
+    await sleep(80);
   }
 
-
-  if(!successCount){
+  if(
+    !events.length &&
+    errors.length===
+    RELEASES.length
+  ){
 
     return {
-
       ok:false,
-
-      status:
-        "DATA_UNAVAILABLE",
-
-      source:"FRED",
-
+      status:"DATA_UNAVAILABLE",
       risk:"UNKNOWN",
-
       score:null,
-
       events:[],
-
-      errors
+      errors,
+      messageCN:
+        "经济事件数据暂时不可用"
     };
   }
-
 
   events.sort(
     (a,b)=>
@@ -842,45 +774,36 @@ async function eventData(env){
       )
   );
 
-
   const unique=[];
+  const seen=new Set();
 
-  const seen=
-    new Set();
+  for(const event of events){
 
+    const key=
+      `${event.releaseId}-${event.date}`;
 
-  for(const e of events){
+    if(!seen.has(key)){
 
-    const k=
-      `${e.releaseId}-${e.date}`;
-
-    if(!seen.has(k)){
-
-      seen.add(k);
-
-      unique.push(e);
+      seen.add(key);
+      unique.push(event);
     }
   }
-
 
   const nextEvent=
     unique[0]||null;
 
-
   let risk="LOW";
-
   let score=0;
-
 
   if(nextEvent){
 
     score=1;
 
-
-    if(nextEvent.daysAway<=1){
+    if(
+      nextEvent.daysAway<=1
+    ){
 
       risk="HIGH";
-
       score=4;
 
     }else if(
@@ -888,20 +811,18 @@ async function eventData(env){
     ){
 
       risk="MEDIUM";
-
       score=2;
     }
   }
-
 
   return {
 
     ok:true,
 
     status:
-      errors.length?
-      "DEGRADED":
-      "OK",
+      errors.length
+        ?"DEGRADED"
+        :"OK",
 
     source:"FRED",
 
@@ -911,7 +832,6 @@ async function eventData(env){
     horizonDays:45,
 
     risk,
-
     score,
 
     nextEvent,
@@ -921,19 +841,24 @@ async function eventData(env){
 
     errors,
 
-    note:
-      "Date-level release monitoring only; exact announcement times and market surprises are not fabricated."
+    messageCN:
+      risk==="HIGH"
+        ?"近期存在高影响经济数据发布时间"
+        :risk==="MEDIUM"
+        ?"近期经济事件风险需要关注"
+        :"近期经济事件风险较低",
+
+    noteCN:
+      "日期仅用于事件监控，不代表市场一定产生特定方向反应。"
   };
 }
 
-
 /* =========================================================
-   GEOPOLITICAL
-   ========================================================= */
+   GEOPOLITICAL INTELLIGENCE
+========================================================= */
 
 const GEO_QUERY=
   "(war OR military OR missile OR sanctions OR embargo OR tariff OR \"trade war\" OR \"Red Sea\" OR \"Strait of Hormuz\" OR \"Suez Canal\" OR OPEC OR pipeline)";
-
 
 const GEO_WORDS={
 
@@ -972,20 +897,13 @@ const GEO_WORDS={
   ]
 };
 
-
 const GEO_WEIGHT={
-
   WAR:3,
-
   SANCTIONS:2,
-
   ENERGY:2,
-
   TRADE:2,
-
   SHIPPING:3
 };
-
 
 function geoUnknown(
   reason,
@@ -1011,57 +929,48 @@ function geoUnknown(
 
     reason,
 
-    reasons:[
-      reason
-    ],
+    reasons:[reason],
 
     groups:[],
 
     headlines:[],
 
     errors:
-      error?
-      [String(error)]:
-      [],
+      error
+        ?[String(error)]
+        :[],
+
+    messageCN:
+      "地缘政治数据源暂时不可用，因此风险保持未知，不会被错误判断为低风险。",
 
     methodology:
       "Unavailable geopolitical data is UNKNOWN, never LOW."
   };
 }
 
-
 function analyseGeo(articles){
 
   const groups={};
 
-
   for(
-    const key
-    of Object.keys(
-      GEO_WORDS
-    )
+    const key of
+    Object.keys(GEO_WORDS)
   ){
 
     groups[key]={
-
       id:key,
-
       count:0,
-
-      weight:
-        GEO_WEIGHT[key]
+      weight:GEO_WEIGHT[key]
     };
   }
 
-
-  for(const a of articles){
+  for(const article of articles){
 
     const title=
       String(
-        a.title||""
+        article.title||""
       )
       .toLowerCase();
-
 
     for(
       const [key,words]
@@ -1072,7 +981,8 @@ function analyseGeo(articles){
 
       if(
         words.some(
-          w=>title.includes(w)
+          word=>
+            title.includes(word)
         )
       ){
 
@@ -1081,43 +991,41 @@ function analyseGeo(articles){
     }
   }
 
-
   let score=0;
-
   const reasons=[];
 
-
   for(
-    const g
-    of Object.values(groups)
+    const group of
+    Object.values(groups)
   ){
 
-    if(g.count>=10){
+    if(group.count>=10){
 
-      score+=g.weight;
+      score+=group.weight;
 
-    }else if(g.count>=5){
+    }else if(
+      group.count>=5
+    ){
 
-      score+=
-        Math.max(
-          1,
-          g.weight-1
-        );
+      score+=Math.max(
+        1,
+        group.weight-1
+      );
 
-    }else if(g.count>=2){
+    }else if(
+      group.count>=2
+    ){
 
       score++;
     }
 
-
-    if(g.count>=2){
+    if(group.count>=2){
 
       reasons.push(
-        `${g.id}: ${g.count} monitored headlines`
+        `${group.id}: ${group.count} monitored headlines`
       );
     }
   }
-
 
   score=
     clamp(
@@ -1126,9 +1034,7 @@ function analyseGeo(articles){
       10
     );
 
-
   let risk="LOW";
-
 
   if(score>=7){
 
@@ -1139,56 +1045,52 @@ function analyseGeo(articles){
     risk="MEDIUM";
   }
 
-
   return {
-
     risk,
-
     score,
-
     reasons,
-
     groups:
       Object.values(groups)
   };
 }
 
-
 async function geopoliticalData(){
 
-  const p=
+  const params=
     new URLSearchParams({
 
-      query:GEO_QUERY,
+      query:
+        GEO_QUERY,
 
-      mode:"ArtList",
+      mode:
+        "ArtList",
 
-      maxrecords:"30",
+      maxrecords:
+        "25",
 
-      format:"json",
+      format:
+        "json",
 
-      sort:"HybridRel",
+      sort:
+        "DateDesc",
 
-      timespan:"24h"
+      timespan:
+        "24h"
     });
-
 
   try{
 
-    const d=
+    const data=
       await getJSON(
 
-        "https://api.gdeltproject.org"+
-        "/api/v2/doc/doc?"+
-        p.toString(),
+        `https://api.gdeltproject.org/api/v2/doc/doc?${params}`,
 
-        6000
+        5500
       );
-
 
     if(
       !Array.isArray(
-        d?.articles
+        data?.articles
       )
     ){
 
@@ -1197,36 +1099,35 @@ async function geopoliticalData(){
       );
     }
 
-
     const articles=
-      d.articles
+      data.articles
 
-      .slice(0,30)
+      .slice(0,25)
 
       .map(
-        a=>({
+        article=>({
 
           title:
-            a.title||null,
+            article.title||null,
 
           url:
-            a.url||null,
+            article.url||null,
 
           domain:
-            a.domain||null,
+            article.domain||null,
 
           sourceCountry:
-            a.sourcecountry||null,
+            article.sourcecountry||null,
 
           seenDate:
-            a.seendate||null
+            article.seendate||null
         })
       )
 
       .filter(
-        a=>a.title
+        article=>
+          article.title
       );
-
 
     if(!articles.length){
 
@@ -1255,16 +1156,17 @@ async function geopoliticalData(){
 
         headlines:[],
 
-        errors:[]
+        errors:[],
+
+        messageCN:
+          "新闻样本不足，地缘政治风险保持未知。"
       };
     }
-
 
     const analysis=
       analyseGeo(
         articles
       );
-
 
     return {
 
@@ -1279,11 +1181,11 @@ async function geopoliticalData(){
       ...analysis,
 
       confidence:
-        articles.length>=20?
-        85:
-        articles.length>=10?
-        70:
-        55,
+        articles.length>=20
+          ?85
+          :articles.length>=10
+          ?70
+          :55,
 
       articleCount:
         articles.length,
@@ -1291,19 +1193,24 @@ async function geopoliticalData(){
       requestCount:1,
 
       headlines:
-        articles.slice(0,12),
+        articles.slice(0,10),
 
       errors:[],
 
+      messageCN:
+        analysis.risk==="HIGH"
+          ?"全球地缘政治新闻风险较高"
+          :analysis.risk==="MEDIUM"
+          ?"全球地缘政治风险需要关注"
+          :"当前新闻监控未显示明显高风险",
+
       methodology:
-        "Single GDELT query; headlines provide context only and do not independently create BUY or SELL signals."
+        "Single GDELT request. News context does not independently create BUY or SELL signals."
     };
 
+  }catch(error){
 
-  }catch(e){
-
-
-    if(e?.status===429){
+    if(error.status===429){
 
       return geoUnknown(
 
@@ -1313,34 +1220,31 @@ async function geopoliticalData(){
       );
     }
 
-
     if(
-      e?.code==="TIMEOUT"||
-      e?.message==="TIMEOUT"
+      error.code==="TIMEOUT" ||
+      error.message==="TIMEOUT"
     ){
 
       return geoUnknown(
 
-        "GDELT did not respond within 6 seconds. Geopolitical risk is UNKNOWN.",
+        "GDELT did not respond within 5.5 seconds. Geopolitical risk is UNKNOWN.",
 
         "TIMEOUT"
       );
     }
 
-
     return geoUnknown(
 
       "GDELT source unavailable. Geopolitical risk is UNKNOWN.",
 
-      e?.message||String(e)
+      error.message
     );
   }
 }
 
-
 /* =========================================================
    DATA QUALITY
-   ========================================================= */
+========================================================= */
 
 function quality(
   market,
@@ -1351,7 +1255,6 @@ function quality(
 
   let confidence=0;
 
-
   const marketOK=
     Boolean(
       market.ZEC &&
@@ -1359,21 +1262,17 @@ function quality(
       market.ETH
     );
 
-
   if(marketOK){
     confidence+=40;
   }
-
 
   if(macro?.ok){
     confidence+=25;
   }
 
-
   if(events?.ok){
     confidence+=20;
   }
-
 
   if(
     geo?.ok &&
@@ -1383,11 +1282,10 @@ function quality(
     confidence+=
       Math.round(
         15*
-        (geo.confidence||0)
-        /100
+        (geo.confidence||0)/
+        100
       );
   }
-
 
   confidence=
     clamp(
@@ -1396,22 +1294,31 @@ function quality(
       100
     );
 
+  let status="OK";
+
+  if(confidence<60){
+
+    status=
+      "DATA_INCOMPLETE";
+
+  }else if(
+    confidence<90
+  ){
+
+    status=
+      "DEGRADED";
+  }
 
   return {
 
-    status:
-      confidence<60?
-      "DATA_INCOMPLETE":
-      confidence<90?
-      "DEGRADED":
-      "OK",
+    status,
 
     confidence,
 
     market:
-      marketOK?
-      "OK":
-      "UNAVAILABLE",
+      marketOK
+        ?"OK"
+        :"UNAVAILABLE",
 
     macro:
       macro?.status||
@@ -1429,29 +1336,33 @@ function quality(
       geo?.risk||
       "UNKNOWN",
 
+    messageCN:
+      status==="OK"
+        ?"数据质量良好"
+        :status==="DEGRADED"
+        ?"部分情报源不可用，决策置信度已自动降低"
+        :"数据不足，只能进行谨慎观察",
+
     rule:
       "Unavailable intelligence is never treated as LOW risk."
   };
 }
 
-
 /* =========================================================
    GLOBAL RISK FUSION
-   ========================================================= */
+========================================================= */
 
 function fusion(
   context,
   macro,
   events,
   geo,
-  q
+  qualityData
 ){
 
   let score=0;
-
   const reasons=[];
 
-
   if(
     context.regime===
     "RISK_OFF"
@@ -1460,19 +1371,16 @@ function fusion(
     score+=2;
 
     reasons.push(
-      "Crypto market environment risk-off"
+      "加密市场环境偏向风险规避"
     );
   }
-
 
   if(
     context.regime===
     "RISK_ON"
   ){
-
     score--;
   }
-
 
   if(
     macro?.regime===
@@ -1482,19 +1390,16 @@ function fusion(
     score+=3;
 
     reasons.push(
-      "Macro environment risk-off"
+      "宏观经济环境处于风险规避状态"
     );
   }
-
 
   if(
     macro?.regime===
     "RISK_ON"
   ){
-
     score--;
   }
-
 
   if(
     events?.risk===
@@ -1504,7 +1409,7 @@ function fusion(
     score+=3;
 
     reasons.push(
-      "High-impact economic event approaching"
+      "高影响经济事件临近"
     );
 
   }else if(
@@ -1513,8 +1418,11 @@ function fusion(
   ){
 
     score++;
-  }
 
+    reasons.push(
+      "近期存在需要关注的经济事件"
+    );
+  }
 
   if(
     geo?.risk===
@@ -1524,7 +1432,7 @@ function fusion(
     score+=2;
 
     reasons.push(
-      "Elevated geopolitical monitoring risk"
+      "地缘政治监控风险较高"
     );
 
   }else if(
@@ -1533,6 +1441,10 @@ function fusion(
   ){
 
     score++;
+
+    reasons.push(
+      "地缘政治风险需要关注"
+    );
 
   }else if(
     geo?.risk===
@@ -1540,10 +1452,9 @@ function fusion(
   ){
 
     reasons.push(
-      "Geopolitical risk UNKNOWN; no LOW-risk assumption applied"
+      "地缘政治风险未知，不采用低风险假设"
     );
   }
-
 
   score=
     clamp(
@@ -1552,55 +1463,54 @@ function fusion(
       10
     );
 
-
   let risk="LOW";
-
   let posture="NORMAL";
-
 
   if(score>=7){
 
     risk="HIGH";
-
     posture="DEFENSIVE";
 
   }else if(score>=4){
 
     risk="MEDIUM";
-
     posture="CAUTIOUS";
   }
 
-
   const reliability=
-
-    q.confidence<60?
-    "LOW":
-
-    q.confidence<90?
-    "MEDIUM":
-
-    "HIGH";
-
+    qualityData.confidence<60
+      ?"LOW"
+      :qualityData.confidence<90
+      ?"MEDIUM"
+      :"HIGH";
 
   const signalPermission=
+    qualityData.confidence<60
+      ?"CAUTION_ONLY"
+      :geo?.risk==="UNKNOWN"
+      ?"REDUCED_CONFIDENCE"
+      :"NORMAL";
 
-    q.confidence<60?
-    "CAUTION_ONLY":
+  let postureCN="正常观察";
 
-    geo?.risk==="UNKNOWN"?
-    "REDUCED_CONFIDENCE":
+  if(posture==="CAUTIOUS"){
+    postureCN="谨慎";
+  }
 
-    "NORMAL";
-
+  if(posture==="DEFENSIVE"){
+    postureCN="防御";
+  }
 
   return {
 
     risk,
 
-    riskScore:score,
+    riskScore:
+      score,
 
     posture,
+
+    postureCN,
 
     decisionReliability:
       reliability,
@@ -1608,32 +1518,331 @@ function fusion(
     signalPermission,
 
     dataConfidence:
-      q.confidence,
+      qualityData.confidence,
+
+    reasons,
+
+    messageCN:
+      risk==="HIGH"
+        ?"综合风险较高，应优先控制风险并等待更清晰确认"
+        :risk==="MEDIUM"
+        ?"综合风险中等，建议保持谨慎并等待确认"
+        :"综合风险暂时较低，但仍需结合市场确认"
+  };
+}
+
+/* =========================================================
+   ZEC DECISION CONTEXT V4.6
+========================================================= */
+
+function decisionContext(
+  market,
+  context,
+  macro,
+  events,
+  geo,
+  globalRisk
+){
+
+  const zec=market.ZEC;
+
+  if(!zec){
+
+    return {
+      action:
+        "DATA UNAVAILABLE",
+
+      actionCN:
+        "市场数据不足",
+
+      trend:
+        "UNKNOWN",
+
+      setupScore:0,
+
+      entryQuality:0,
+
+      chaseRisk:
+        "UNKNOWN",
+
+      reasons:[
+        "ZEC市场数据不可用"
+      ]
+    };
+  }
+
+  let bearish=0;
+  let bullish=0;
+
+  const reasons=[];
+
+  if(
+    zec.change24h!=null
+  ){
+
+    if(zec.change24h<=-4){
+
+      bearish+=3;
+
+      reasons.push(
+        "ZEC 24小时下跌动能较强"
+      );
+
+    }else if(
+      zec.change24h<0
+    ){
+
+      bearish++;
+
+      reasons.push(
+        "ZEC 24小时动能偏弱"
+      );
+
+    }else if(
+      zec.change24h>=4
+    ){
+
+      bullish+=3;
+
+      reasons.push(
+        "ZEC 24小时上涨动能较强"
+      );
+
+    }else if(
+      zec.change24h>0
+    ){
+
+      bullish++;
+    }
+  }
+
+  if(
+    context.relativeStrength===
+    "WEAK"
+  ){
+
+    bearish+=2;
+
+    reasons.push(
+      "ZEC表现弱于BTC和ETH"
+    );
+  }
+
+  if(
+    context.relativeStrength===
+    "STRONG"
+  ){
+
+    bullish+=2;
+
+    reasons.push(
+      "ZEC表现强于BTC和ETH"
+    );
+  }
+
+  if(
+    macro?.regime===
+    "RISK_OFF"
+  ){
+
+    bearish+=2;
+
+    reasons.push(
+      "宏观环境偏向风险规避"
+    );
+  }
+
+  if(
+    macro?.regime===
+    "RISK_ON"
+  ){
+    bullish++;
+  }
+
+  let trend="NEUTRAL";
+
+  if(
+    bearish>=bullish+2
+  ){
+
+    trend="BEARISH";
+
+  }else if(
+    bullish>=bearish+2
+  ){
+
+    trend="BULLISH";
+  }
+
+  const directionalStrength=
+    Math.abs(
+      bearish-bullish
+    );
+
+  let setupScore=
+    clamp(
+      35+
+      directionalStrength*9,
+      0,
+      100
+    );
+
+  if(
+    trend==="NEUTRAL"
+  ){
+    setupScore=
+      Math.min(
+        setupScore,
+        45
+      );
+  }
+
+  let chaseRisk="LOW";
+
+  const absolute24h=
+    Math.abs(
+      zec.change24h||0
+    );
+
+  if(absolute24h>=7){
+
+    chaseRisk="HIGH";
+
+  }else if(
+    absolute24h>=4
+  ){
+
+    chaseRisk="MEDIUM";
+  }
+
+  let entryQuality=70;
+
+  if(chaseRisk==="MEDIUM"){
+    entryQuality-=20;
+  }
+
+  if(chaseRisk==="HIGH"){
+    entryQuality-=40;
+  }
+
+  if(
+    globalRisk.risk===
+    "HIGH"
+  ){
+    entryQuality-=20;
+  }
+
+  if(
+    globalRisk.risk===
+    "MEDIUM"
+  ){
+    entryQuality-=10;
+  }
+
+  if(
+    geo?.risk===
+    "UNKNOWN"
+  ){
+    entryQuality-=5;
+  }
+
+  if(
+    events?.risk===
+    "HIGH"
+  ){
+    entryQuality-=10;
+  }
+
+  entryQuality=
+    clamp(
+      entryQuality,
+      0,
+      100
+    );
+
+  let action=
+    "WAIT FOR CONFIRMATION";
+
+  let actionCN=
+    "等待确认";
+
+  /*
+   V4.6 deliberately avoids
+   forcing BUY/SELL from weak data.
+  */
+
+  if(
+    trend==="BULLISH" &&
+    setupScore>=70 &&
+    entryQuality>=70 &&
+    globalRisk.risk!=="HIGH" &&
+    globalRisk.signalPermission==="NORMAL"
+  ){
+
+    action=
+      "BULLISH SETUP";
+
+    actionCN=
+      "看涨条件正在形成";
+  }
+
+  if(
+    trend==="BEARISH" &&
+    setupScore>=70 &&
+    entryQuality>=70 &&
+    globalRisk.risk!=="HIGH" &&
+    globalRisk.signalPermission==="NORMAL"
+  ){
+
+    action=
+      "BEARISH SETUP";
+
+    actionCN=
+      "看跌条件正在形成";
+  }
+
+  if(
+    chaseRisk==="HIGH"
+  ){
+
+    action=
+      "WAIT FOR CONFIRMATION";
+
+    actionCN=
+      "避免追涨杀跌，等待确认";
+  }
+
+  return {
+
+    action,
+    actionCN,
+
+    trend,
+
+    setupScore:
+      Math.round(setupScore),
+
+    entryQuality:
+      Math.round(entryQuality),
+
+    chaseRisk,
 
     reasons
   };
 }
 
-
 /* =========================================================
-   INTELLIGENCE
-   ========================================================= */
+   COMPLETE INTELLIGENCE
+========================================================= */
 
 async function intelligence(env){
 
   /*
-   Important:
-   macroData and eventData are individually sequential
-   internally. Market and geopolitical modules remain
-   independent.
+   Market + macro + events + geo
+   run independently.
   */
 
-  const [
-    m,
-    macroR,
-    eventR,
-    geoR
-  ]=
+  const results=
     await Promise.allSettled([
 
       marketData(),
@@ -1645,15 +1854,13 @@ async function intelligence(env){
       geopoliticalData()
     ]);
 
-
   const marketResult=
+    results[0].status===
+    "fulfilled"
 
-    m.status==="fulfilled"?
+    ?results[0].value
 
-    m.value:
-
-    {
-
+    :{
       market:{
         ZEC:null,
         BTC:null,
@@ -1668,88 +1875,86 @@ async function intelligence(env){
       }
     };
 
-
   const macro=
+    results[1].status===
+    "fulfilled"
 
-    macroR.status==="fulfilled"?
+    ?results[1].value
 
-    macroR.value:
-
-    {
+    :{
       ok:false,
-      status:
-        "DATA_UNAVAILABLE",
+      status:"DATA_UNAVAILABLE",
       risk:"UNKNOWN",
       regime:"UNKNOWN"
     };
 
-
   const events=
+    results[2].status===
+    "fulfilled"
 
-    eventR.status==="fulfilled"?
+    ?results[2].value
 
-    eventR.value:
-
-    {
+    :{
       ok:false,
-      status:
-        "DATA_UNAVAILABLE",
+      status:"DATA_UNAVAILABLE",
       risk:"UNKNOWN",
       score:null
     };
 
-
   const geo=
+    results[3].status===
+    "fulfilled"
 
-    geoR.status==="fulfilled"?
+    ?results[3].value
 
-    geoR.value:
-
-    geoUnknown(
+    :geoUnknown(
       "Geopolitical engine failed safely."
     );
 
-
-  const q=
+  const dataQuality=
     quality(
-
       marketResult.market,
-
       macro,
-
       events,
-
       geo
     );
 
-
   const globalRisk=
     fusion(
-
       marketResult.context,
-
       macro,
-
       events,
-
       geo,
-
-      q
+      dataQuality
     );
 
+  const decision=
+    decisionContext(
+      marketResult.market,
+      marketResult.context,
+      macro,
+      events,
+      geo,
+      globalRisk
+    );
 
   return {
 
-    ok:
-      Boolean(
-        marketResult.market.ZEC
-      ),
+    ok:Boolean(
+      marketResult.market.ZEC
+    ),
 
     service:
       "ZEC AI Intelligence",
 
     version:
       VERSION,
+
+    mission:
+      "V4.6 Chinese Intelligence Mission",
+
+    language:
+      "zh-CN",
 
     timestamp:
       new Date()
@@ -1761,6 +1966,8 @@ async function intelligence(env){
     marketContext:
       marketResult.context,
 
+    decision,
+
     macro,
 
     events,
@@ -1768,20 +1975,21 @@ async function intelligence(env){
     geopolitical:
       geo,
 
-    dataQuality:
-      q,
+    dataQuality,
 
     globalRisk,
+
+    disclaimerCN:
+      "仅用于市场研究及模拟分析，不构成投资建议。",
 
     disclaimer:
       "Market research and simulation only. Not investment advice."
   };
 }
 
-
 /* =========================================================
    STATUS
-   ========================================================= */
+========================================================= */
 
 function status(env){
 
@@ -1795,13 +2003,17 @@ function status(env){
     version:
       VERSION,
 
-    status:"ONLINE",
+    mission:
+      "V4.6 Chinese Intelligence Mission",
+
+    status:
+      "ONLINE",
+
+    language:
+      "zh-CN",
 
     architecture:
       "Cloudflare Worker Multi-Source Intelligence Gateway",
-
-    reliabilityPatch:
-      "V4.5.3 SEQUENTIAL FRED",
 
     modules:{
 
@@ -1818,14 +2030,14 @@ function status(env){
         "ACTIVE",
 
       fredMacro:
-        env.FRED_API_KEY?
-        "ACTIVE · SEQUENTIAL":
-        "NOT CONFIGURED",
+        env.FRED_API_KEY
+          ?"ACTIVE"
+          :"NOT CONFIGURED",
 
       economicEventRadar:
-        env.FRED_API_KEY?
-        "ACTIVE · SEQUENTIAL":
-        "NOT CONFIGURED",
+        env.FRED_API_KEY
+          ?"ACTIVE"
+          :"NOT CONFIGURED",
 
       geopoliticalEngine:
         "ACTIVE · SINGLE REQUEST · FAST-FAIL",
@@ -1834,36 +2046,33 @@ function status(env){
         "ACTIVE",
 
       globalRiskFusion:
+        "ACTIVE",
+
+      chineseIntelligence:
+        "ACTIVE",
+
+      decisionContext:
         "ACTIVE"
     },
 
-    fredPolicy:{
+    policies:{
 
-      macroRequestMode:
+      fred:
         "SEQUENTIAL",
 
-      eventRequestMode:
-        "SEQUENTIAL",
+      geopoliticalMaxRequests:
+        1,
 
-      seriesTimeoutSeconds:
-        10,
+      geopoliticalTimeoutSeconds:
+        5.5,
 
-      interRequestDelayMs:
-        180
-    },
-
-    geopoliticalPolicy:{
-
-      maxRequests:1,
-
-      timeoutSeconds:6,
-
-      retry:false,
-
-      failureResult:
+      geopoliticalFailure:
         "UNKNOWN",
 
       unavailableIsLow:
+        false,
+
+      forcedBuySell:
         false
     },
 
@@ -1872,196 +2081,21 @@ function status(env){
         env.FRED_API_KEY
       ),
 
+    messageCN:
+      "ZEC AI Intelligence V4.6.0运行正常",
+
     timestamp:
       new Date()
       .toISOString(),
 
-    disclaimer:
-      "Market research and simulation only. Not investment advice."
+    disclaimerCN:
+      "仅用于市场研究及模拟分析，不构成投资建议。"
   };
 }
 
-
-/* =========================================================
-   FRED SINGLE SERIES DIAGNOSTIC
-   ========================================================= */
-
-async function fredTest(env){
-
-  const series="DGS10";
-
-  const started=
-    Date.now();
-
-
-  if(!env.FRED_API_KEY){
-
-    return {
-
-      data:{
-
-        ok:false,
-
-        version:
-          VERSION,
-
-        test:
-          "FRED_SINGLE_SERIES",
-
-        series,
-
-        error:
-          "FRED_API_KEY_NOT_CONFIGURED"
-      },
-
-      status:500
-    };
-  }
-
-
-  try{
-
-    const endpoint=
-
-      "https://api.stlouisfed.org"+
-      "/fred/series/observations"+
-      "?series_id="+
-      encodeURIComponent(series)+
-      "&api_key="+
-      encodeURIComponent(
-        env.FRED_API_KEY
-      )+
-      "&file_type=json"+
-      "&sort_order=desc"+
-      "&limit=1";
-
-
-    const controller=
-      new AbortController();
-
-
-    const timer=
-      setTimeout(
-        ()=>controller.abort(),
-        10000
-      );
-
-
-    let response;
-
-
-    try{
-
-      response=
-        await fetch(
-          endpoint,
-          {
-            method:"GET",
-
-            headers:{
-              "Accept":
-                "application/json",
-
-              "User-Agent":
-                "ZEC-AI-Intelligence/4.5.3"
-            },
-
-            signal:
-              controller.signal
-          }
-        );
-
-    }finally{
-
-      clearTimeout(timer);
-    }
-
-
-    const body=
-      await response.text();
-
-
-    return {
-
-      data:{
-
-        ok:
-          response.ok,
-
-        version:
-          VERSION,
-
-        test:
-          "FRED_SINGLE_SERIES",
-
-        series,
-
-        httpStatus:
-          response.status,
-
-        elapsedMs:
-          Date.now()-
-          started,
-
-        fredApiKeyConfigured:
-          true,
-
-        responsePreview:
-          body.slice(
-            0,
-            500
-          )
-      },
-
-      status:
-        response.ok?
-        200:
-        502
-    };
-
-
-  }catch(e){
-
-    return {
-
-      data:{
-
-        ok:false,
-
-        version:
-          VERSION,
-
-        test:
-          "FRED_SINGLE_SERIES",
-
-        series,
-
-        elapsedMs:
-          Date.now()-
-          started,
-
-        fredApiKeyConfigured:
-          true,
-
-        error:
-          e?.name===
-          "AbortError"?
-          "TIMEOUT":
-          (
-            e?.message||
-            String(e)
-          )
-      },
-
-      status:502
-    };
-  }
-}
-
-
 /* =========================================================
    ROUTER
-   ========================================================= */
+========================================================= */
 
 export default{
 
@@ -2084,15 +2118,12 @@ export default{
       );
     }
 
-
     const url=
       new URL(
         request.url
       );
 
-
     try{
-
 
       if(
         url.pathname==="/" ||
@@ -2104,15 +2135,13 @@ export default{
         );
       }
 
-
       if(
         url.pathname===
         "/market"
       ){
 
-        const m=
+        const result=
           await marketData();
-
 
         return reply({
 
@@ -2125,10 +2154,9 @@ export default{
             new Date()
             .toISOString(),
 
-          ...m
+          ...result
         });
       }
-
 
       if(
         url.pathname===
@@ -2140,22 +2168,6 @@ export default{
         );
       }
 
-
-      if(
-        url.pathname===
-        "/fred-test"
-      ){
-
-        const result=
-          await fredTest(env);
-
-        return reply(
-          result.data,
-          result.status
-        );
-      }
-
-
       if(
         url.pathname===
         "/events"
@@ -2165,7 +2177,6 @@ export default{
           await eventData(env)
         );
       }
-
 
       if(
         url.pathname===
@@ -2177,7 +2188,6 @@ export default{
         );
       }
 
-
       if(
         url.pathname===
         "/intelligence"
@@ -2188,57 +2198,132 @@ export default{
         );
       }
 
+      if(
+        url.pathname===
+        "/fred-test"
+      ){
 
-      return reply({
+        if(
+          !env.FRED_API_KEY
+        ){
 
-        ok:false,
+          return reply(
+            {
+              ok:false,
+              version:VERSION,
+              test:
+                "FRED_SINGLE_SERIES",
+              error:
+                "FRED_API_KEY_NOT_CONFIGURED"
+            },
+            500
+          );
+        }
 
-        version:
-          VERSION,
+        const started=
+          Date.now();
 
-        error:
-          "Route not found",
+        try{
 
-        availableRoutes:[
+          const result=
+            await fredSeries(
+              "DGS10",
+              env.FRED_API_KEY
+            );
 
-          "/",
+          return reply({
 
-          "/status",
+            ok:true,
 
-          "/market",
+            version:
+              VERSION,
 
-          "/macro",
+            test:
+              "FRED_SINGLE_SERIES",
 
-          "/fred-test",
+            elapsedMs:
+              Date.now()-
+              started,
 
-          "/events",
+            result
+          });
 
-          "/geopolitical",
+        }catch(error){
 
-          "/intelligence"
-        ]
+          return reply(
+            {
 
-      },404);
+              ok:false,
 
+              version:
+                VERSION,
 
-    }catch(e){
+              test:
+                "FRED_SINGLE_SERIES",
 
-      return reply({
+              elapsedMs:
+                Date.now()-
+                started,
 
-        ok:false,
+              error:
+                error.message
+            },
+            502
+          );
+        }
+      }
 
-        version:
-          VERSION,
+      return reply(
+        {
 
-        timestamp:
-          new Date()
-          .toISOString(),
+          ok:false,
 
-        error:
-          e?.message||
-          String(e)
+          version:
+            VERSION,
 
-      },500);
+          error:
+            "Route not found",
+
+          messageCN:
+            "找不到此接口",
+
+          availableRoutes:[
+            "/",
+            "/status",
+            "/market",
+            "/macro",
+            "/events",
+            "/geopolitical",
+            "/intelligence",
+            "/fred-test"
+          ]
+        },
+        404
+      );
+
+    }catch(error){
+
+      return reply(
+        {
+
+          ok:false,
+
+          version:
+            VERSION,
+
+          timestamp:
+            new Date()
+            .toISOString(),
+
+          error:
+            error?.message||
+            String(error),
+
+          messageCN:
+            "系统发生异常，但安全机制已经阻止错误数据被当作正常信号。"
+        },
+        500
+      );
     }
   }
 };
